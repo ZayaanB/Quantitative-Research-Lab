@@ -50,6 +50,10 @@ With that manifest prepared, use new output filenames:
 .venv/bin/python tests/test_classical_forecasts.py
 ```
 
+Compare those saved predictions with GBM using the
+[matched-date runner](../../docs/matched-forecast.md). It checks data quality and
+requires identical model dates rather than silently discarding unmatched rows.
+
 The current LightGBM model uses only historical price-derived features, not
 volume, market returns, news or fundamentals. It predicts log returns and maps
 them back to prices; those outputs are not expected arithmetic prices or

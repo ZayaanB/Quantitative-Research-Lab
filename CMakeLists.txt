@@ -144,6 +144,9 @@ if(BUILD_TESTING)
     add_test(NAME mc_tests COMMAND mc_tests)
     find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
+        add_test(NAME matched_forecast_runner
+            COMMAND ${CMAKE_COMMAND} -E env MC_ENGINE=$<TARGET_FILE:mcprice>
+                ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_matched_forecasts.py)
         add_test(NAME stock_history_downloader
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_download_stock_history.py)
         add_test(NAME greeks_cli_workflow
