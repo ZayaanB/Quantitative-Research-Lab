@@ -17,6 +17,9 @@ do not tune a model until that same diagnostic looks good.
 
 ## Daily milestones
 
+Day 1 completed October 19, 2026: [matched comparison and data checks](matched-forecast.md).
+Existing model predictions and the reserved final period were preserved.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |

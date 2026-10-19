@@ -73,6 +73,10 @@ Day 39 provides the [frozen final-holdout workflow](final-forecast.md).
 Optional [ARIMA/ETS experiments](classical-forecast.md) remain validation-only challengers.
 The [LightGBM return experiment](boosted-forecast.md) adds a fixed nonlinear challenger.
 
+To compare saved point-model reports on exactly the same dates as GBM, use the
+[matched comparison](matched-forecast.md). It validates inputs and reports gaps
+without silently intersecting model samples or touching final-test targets.
+
 ## Run the final holdout
 
 Freeze your procedure after validation, then run the final test explicitly:
