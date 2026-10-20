@@ -54,8 +54,10 @@ Compare those saved predictions with GBM using the
 [matched-date runner](../../docs/matched-forecast.md). It checks data quality and
 requires identical model dates rather than silently discarding unmatched rows.
 
-The current LightGBM model uses only historical price-derived features, not
-volume, market returns, news or fundamentals. It predicts log returns and maps
+The current LightGBM model still uses only historical price-derived features.
+A separate [feature exporter](../../docs/stock-features.md) now prepares OHLCV
+and SPY/QQQ/XLK inputs for future experiments; it does not change that model.
+The model predicts log returns and maps
 them back to prices; those outputs are not expected arithmetic prices or
 calibrated probabilities. It runs on CPU; no GPU is required.
 

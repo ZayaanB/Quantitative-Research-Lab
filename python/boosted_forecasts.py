@@ -21,6 +21,12 @@ PARAMETERS = {"objective": "regression_l1", "learning_rate": 0.03, "num_leaves":
 ROUNDS = 80
 
 
+def price_features(logs, returns, index):
+    return ([logs[index] - logs[index - lag] for lag in (1, 2, 5, 10, 20)] +
+            [statistics.pstdev(returns[index - span:index]) for span in (5, 20)] +
+            [logs[index] - statistics.mean(logs[index - 19:index + 1])])
+
+
 def training_set(prices, horizon, lookback):
     if type(horizon) is not int or horizon <= 0 or type(lookback) is not int or lookback < 60:
         raise ValueError("require positive horizon and lookback of at least 60")
@@ -30,16 +36,11 @@ def training_set(prices, horizon, lookback):
     origin = len(logs) - 1
     returns = [logs[i] - logs[i - 1] for i in range(1, len(logs))]
 
-    def feature(index):
-        return ([logs[index] - logs[index - lag] for lag in (1, 2, 5, 10, 20)] +
-                [statistics.pstdev(returns[index - span:index]) for span in (5, 20)] +
-                [logs[index] - statistics.mean(logs[index - 19:index + 1])])
-
     indices = range(max(20, origin - lookback), origin - horizon + 1)
     if len(indices) < 40:
         raise ValueError("insufficient history for 40 matured training labels")
-    return ([feature(index) for index in indices],
-            [logs[index + horizon] - logs[index] for index in indices], feature(origin))
+    return ([price_features(logs, returns, index) for index in indices],
+            [logs[index + horizon] - logs[index] for index in indices], price_features(logs, returns, origin))
 
 
 def forecast(prices, horizon, lookback):
