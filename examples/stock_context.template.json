@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "lookback_days": 252,
+  "validation_start": "2018-01-01",
+  "holdout_start": "2024-01-01",
+  "test_end": "2025-12-31",
+  "bootstrap": {
+    "samples": 2000,
+    "seed": 42,
+    "block_sizes": [1, 2, 4]
+  },
+  "assets": [
+    {
+      "symbol": "SPY",
+      "csv": "SPY.csv",
+      "metadata": "SPY.meta",
+      "csv_sha256": "REPLACE_WITH_CSV_SHA256",
+      "metadata_sha256": "REPLACE_WITH_METADATA_SHA256"
+    },
+    {
+      "symbol": "QQQ",
+      "csv": "QQQ.csv",
+      "metadata": "QQQ.meta",
+      "csv_sha256": "REPLACE_WITH_CSV_SHA256",
+      "metadata_sha256": "REPLACE_WITH_METADATA_SHA256"
+    },
+    {
+      "symbol": "XLK",
+      "csv": "XLK.csv",
+      "metadata": "XLK.meta",
+      "csv_sha256": "REPLACE_WITH_CSV_SHA256",
+      "metadata_sha256": "REPLACE_WITH_METADATA_SHA256"
+    }
+  ]
+}

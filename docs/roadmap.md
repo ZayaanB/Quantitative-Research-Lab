@@ -20,6 +20,9 @@ do not tune a model until that same diagnostic looks good.
 Day 1 completed October 19, 2026: [matched comparison and data checks](matched-forecast.md).
 Existing model predictions and the reserved final period were preserved.
 
+Day 2 completed October 20, 2026: [past-only stock features](stock-features.md).
+OHLCV and SPY/QQQ/XLK features are ready; no new model was fitted or scored.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |
