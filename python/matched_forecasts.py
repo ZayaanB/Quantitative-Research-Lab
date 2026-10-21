@@ -27,6 +27,8 @@ def positive_number(value, context):
 def read_reference(path, config, digest, histories, column):
     raw = path.read_bytes()
     report = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
+    if isinstance(report, dict) and report.get("task") == "binary_direction":
+        raise ValueError("direction probabilities cannot be compared as point-price forecasts")
     if (not isinstance(report, dict) or type(report.get("schema_version")) is not int or report.get("schema_version") != 1 or
             report.get("phase") != "validation" or report.get("manifest_sha256") != digest or
             report.get("config") != config):

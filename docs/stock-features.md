@@ -50,5 +50,5 @@ split effects. SPY/QQQ/XLK are fixed research proxies, not a sector mapping for
 every stock. Whole-file hashes and basic price/date checks still read reserved
 rows, but features and extra OHLCV diagnostics do not use them.
 
-The next milestone tests direction models with these inputs. More features
+The [direction experiments](direction-forecast.md) use these inputs. More features
 are not evidence of better predictions; that requires matched out-of-sample tests.

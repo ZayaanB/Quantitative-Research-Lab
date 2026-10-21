@@ -101,6 +101,7 @@ class MatchedForecastTests(unittest.TestCase):
     def test_reference_validation_rejects_tampering_before_engine_execution(self):
         original = copy.deepcopy(self.source)
         mutations = (
+            lambda r: r.update(task="binary_direction"),
             lambda r: r.update(schema_version=True),
             lambda r: r.update(phase="holdout"),
             lambda r: r.update(manifest_sha256="0" * 64),

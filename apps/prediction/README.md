@@ -1,7 +1,8 @@
 # Stock prediction experiments
 
 Optional Python experiments: ridge, a ridge/latest-price ensemble, ARIMA, ETS
-and LightGBM. These benchmark future prices at 1/5/20-session horizons. They
+and LightGBM regression, plus separate logistic/LightGBM direction classifiers.
+These benchmark prices or direction at 1/5/20-session horizons. They
 do not replace the C++ forecast command or prove a trading edge.
 
 Run from the repository root after the [normal build](../../README.md):
@@ -56,10 +57,15 @@ requires identical model dates rather than silently discarding unmatched rows.
 
 The current LightGBM model still uses only historical price-derived features.
 A separate [feature exporter](../../docs/stock-features.md) now prepares OHLCV
-and SPY/QQQ/XLK inputs for future experiments; it does not change that model.
+and SPY/QQQ/XLK inputs for direction experiments; it does not change that model.
 The model predicts log returns and maps
 them back to prices; those outputs are not expected arithmetic prices or
 calibrated probabilities. It runs on CPU; no GPU is required.
+
+The [direction classifiers](../../docs/direction-forecast.md) use the expanded
+features with training-only scaling and fixed yearly fits. Their output is
+up/not-up probability, not a price forecast. Install `requirements-direction.txt`
+and run that guide's command; existing regression commands stay unchanged.
 
 Our small 2015–2017 Apple diagnostic did not beat latest price. More features
 are hypotheses to test, not promised improvements. Do not tune on the final
