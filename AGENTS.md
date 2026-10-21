@@ -94,6 +94,8 @@ implementation and preserve established commands unless a migration is requested
 Use `apply_patch` for edits and `rg` for searches. Preserve existing uncommitted
 work; do not reset, stash, commit, push or delete user data without authorization.
 Keep commits coherent, buildable and tested when commits are requested.
+Name new branches `feat/zayaan/<description>`. After implementation milestones,
+provide checkout, explicit staging, commit and push commands; do not run them unless asked.
 
 Keep optional dependencies in a virtual environment; do not require system-wide
 installs or CUDA. Never commit credentials, downloaded histories, caches or local
@@ -126,6 +128,8 @@ documented requirements in `.venv`:
 ```
 
 Default CTest may skip optional model cases; a skip is not a tested native fit.
+For direction-model changes, install `python/requirements-direction.txt` in
+`.venv` and also run `.venv/bin/python tests/test_direction_forecasts.py`.
 For documentation-only changes, check local links, commands and `git diff --check`.
 Report what actually ran, failures/skips and remaining limitations. No test suite
 can justify a claim that all bugs are impossible.

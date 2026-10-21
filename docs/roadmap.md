@@ -8,8 +8,7 @@ this plan does not mean the future features are already implemented.
 
 Working: option pricing, European Greeks CLI, stock GBM, walk-forward evaluation,
 ridge/ensemble, ARIMA/ETS, LightGBM regression and a validated history downloader.
-Energy has a guide but no importer or runner. Stock classification and neural
-models have not been built.
+Energy has a guide but no importer or runner. Neural models have not been built.
 
 The October 17 download contains AAPL/MSFT/GOOGL and SPY/QQQ/XLK daily OHLCV.
 The fixed 2018–2023 comparison found no useful stock edge. Keep those outcomes;
@@ -22,6 +21,11 @@ Existing model predictions and the reserved final period were preserved.
 
 Day 2 completed October 20, 2026: [past-only stock features](stock-features.md).
 OHLCV and SPY/QQQ/XLK features are ready; no new model was fitted or scored.
+
+Day 3 completed October 20, 2026: [direction classifiers](direction-forecast.md).
+Fixed yearly logistic/LightGBM fits use matched dates and past-only labels;
+existing price models and the reserved final period are unchanged.
+Neither classifier beat always-up in the three-stock validation aggregates.
 
 | Day | Build | Completion check |
 | --- | --- | --- |
