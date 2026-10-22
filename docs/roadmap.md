@@ -27,6 +27,10 @@ Fixed yearly logistic/LightGBM fits use matched dates and past-only labels;
 existing price models and the reserved final period are unchanged.
 Neither classifier beat always-up in the three-stock validation aggregates.
 
+Day 4 completed October 21, 2026: [pooled cross-stock training](pooled-direction.md).
+Expanded the predeclared sample to ten stocks and compared both modes on matched
+dates. Pooling did not beat always-up overall; per-stock training stays default.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |

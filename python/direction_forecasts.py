@@ -43,6 +43,55 @@ def training_data(points, fold_start, horizon, lookback):
                   "historical_up_probability": statistics.mean(y)}
 
 
+def pooled_training_data(histories, fold_start, horizon, lookback):
+    if len(histories) < 2:
+        raise ValueError("pooled training requires at least two assets")
+    records, by_asset = [], {}
+    for symbol, points in sorted(histories.items()):
+        try:
+            x, y, details = training_data(points, fold_start, horizon, lookback)
+        except ValueError as error:
+            raise ValueError(f"{symbol}, {fold_start}, {horizon}d: {error}; no asset was dropped") from error
+        by_asset[symbol] = details
+        start = bisect_left([point["origin_date"] for point in points], details["first_training_origin"])
+        records.extend((points[start + offset]["origin_date"], symbol, row, label)
+                       for offset, (row, label) in enumerate(zip(x, y)))
+    records.sort(key=lambda record: (record[0], record[1]))
+    labels = [record[3] for record in records]
+    return [record[2] for record in records], labels, {
+        "training_rows": len(records), "by_asset": by_asset,
+        "first_training_origin": records[0][0],
+        "last_training_target": max(details["last_training_target"] for details in by_asset.values()),
+        "historical_up_probability": statistics.mean(labels), "row_order": "origin_date, symbol",
+        "weighting": "equal per training row; no class or asset reweighting"}
+
+
+def origin_folds(points, config, horizon):
+    origins = [index for index in range(config["lookback_days"] - WARMUP, len(points) - horizon)
+               if points[index]["origin_date"] >= config["validation_start"]][::horizon]
+    if not origins:
+        raise ValueError(f"{horizon}d: no eligible forecasts")
+    folds = {}
+    for index in origins:
+        day = points[index]["origin_date"]
+        fold = max(config["validation_start"], day[:4] + "-01-01")
+        folds.setdefault(fold, []).append(index)
+    return folds
+
+
+def fit_pooled_fold(histories, schedules, fold, horizon, lookback):
+    x, y, training = pooled_training_data(histories, fold, horizon, lookback)
+    requests = sorted((histories[symbol][index]["origin_date"], symbol, index)
+                      for symbol in histories for index in schedules[(symbol, horizon)].get(fold, []))
+    probabilities, diagnostics = fit_predict(x, y, [histories[symbol][index]["features"]
+                                                   for _, symbol, index in requests])
+    routed = {}
+    for position, (_, symbol, index) in enumerate(requests):
+        routed[(symbol, index)] = {name: probabilities[name][position] for name in MODELS}
+    return routed, {"fit_id": f"{horizon}d:{fold}", "fold_start": fold, "horizon_days": horizon,
+                    **training, "predictions": len(requests), "models": diagnostics}
+
+
 def fit_predict(x, y, current):
     import lightgbm as lgb
     import numpy as np
@@ -150,7 +199,9 @@ def paired_uncertainty(points, settings):
     return results
 
 
-def evaluate(manifest, context_manifest):
+def evaluate(manifest, context_manifest, training_mode="separate"):
+    if training_mode not in ("separate", "pooled"):
+        raise ValueError("training_mode must be separate or pooled")
     began = time.perf_counter()
     prepared = prepare_features(manifest, context_manifest)
     config = prepared["config"]
@@ -158,10 +209,13 @@ def evaluate(manifest, context_manifest):
         raise ValueError("direction models require lookback_days of at least 80")
     report = {key: value for key, value in prepared.items() if key not in ("results", "runtime_seconds", "phase")}
     report.update(phase="validation", task="binary_direction", results=[], aggregate_metrics={},
+                  training_mode=training_mode, shared_fits=[],
                   models={"logistic": {"parameters": LOGISTIC_PARAMETERS, "regularization": "L2",
                                         "scaling": "training-only StandardScaler"},
                           "lightgbm": {"parameters": BINARY_PARAMETERS, "rounds": ROUNDS}},
-                  procedure={"training": "separate per asset/horizon; yearly chronological refits",
+                  procedure={"training": ("pooled across all manifest assets per horizon; yearly chronological refits"
+                                          if training_mode == "pooled" else
+                                          "separate per asset/horizon; yearly chronological refits"),
                              "fold_start": "max(validation_start, January 1 of origin year)",
                              "training_target_cutoff": "strictly before fold_start",
                              "lookback_sessions": config["lookback_days"], "minimum_labels": MINIMUM_LABELS,
@@ -182,30 +236,41 @@ def evaluate(manifest, context_manifest):
         "Within-group paired circular block-bootstrap intervals are sensitivity checks, not multiple-test corrections.",
         "Aggregate metrics pool correlated asset/date rows descriptively; no aggregate independence claim.",
         "Annual frozen fits differ from the existing regression model's per-origin refits."]
+    if training_mode == "pooled":
+        report["limitations"].extend([
+            "Every manifest asset must provide 40 pre-fold labels; no assets are silently omitted.",
+            "Training rows are equally weighted; correlated stocks are not independent evidence.",
+            "The declared present-day ticker list is survivor-selected, not a historical index universe.",
+            "Per-point training target dates/indices refer to that stock; pooled_last_training_target covers all assets.",
+            "Historical-up baselines remain per-asset so separate and pooled comparisons use identical baselines."])
     if report["status"] == "blocked":
         report["runtime_seconds"] = time.perf_counter() - began
         return report
     report["dependencies"] = {name: version(name) for name in ("scikit-learn", "lightgbm", "numpy", "scipy", "threadpoolctl")}
-    all_points = []
+    histories = {group["symbol"]: group["points"] for group in prepared["results"]}
+    schedules = {(symbol, horizon): origin_folds(points, config, horizon)
+                 for symbol, points in histories.items() for horizon in HORIZONS}
+    all_points, pooled_fits = [], {}
     for group in prepared["results"]:
         feature_points = group["points"]
         for horizon in HORIZONS:
-            origins = [index for index in range(config["lookback_days"] - WARMUP,
-                                                len(feature_points) - horizon)
-                       if feature_points[index]["origin_date"] >= config["validation_start"]]
-            origins = origins[::horizon]
-            if not origins:
-                raise ValueError(f"{group['symbol']} {horizon}d: no eligible forecasts")
-            folds = {}
-            for index in origins:
-                day = feature_points[index]["origin_date"]
-                fold = max(config["validation_start"], day[:4] + "-01-01")
-                folds.setdefault(fold, []).append(index)
+            folds = schedules[(group["symbol"], horizon)]
             points, fitted_folds = [], []
             for fold, indices in folds.items():
-                x, y, training = training_data(feature_points, fold, horizon, config["lookback_days"])
-                probabilities, diagnostics = fit_predict(x, y, [feature_points[index]["features"] for index in indices])
-                fitted_folds.append({"fold_start": fold, **training, "models": diagnostics})
+                shared = None
+                if training_mode == "pooled":
+                    key = (horizon, fold)
+                    if key not in pooled_fits:
+                        pooled_fits[key] = fit_pooled_fold(histories, schedules, fold, horizon, config["lookback_days"])
+                        report["shared_fits"].append(pooled_fits[key][1])
+                    routed, shared = pooled_fits[key]
+                    training = shared["by_asset"][group["symbol"]]
+                    probabilities = {name: [routed[(group["symbol"], index)][name] for index in indices] for name in MODELS}
+                    fitted_folds.append({"fold_start": fold, **training, "shared_fit_id": shared["fit_id"]})
+                else:
+                    x, y, training = training_data(feature_points, fold, horizon, config["lookback_days"])
+                    probabilities, diagnostics = fit_predict(x, y, [feature_points[index]["features"] for index in indices])
+                    fitted_folds.append({"fold_start": fold, **training, "models": diagnostics})
                 for position, index in enumerate(indices):
                     origin, target = feature_points[index], feature_points[index + horizon]
                     points.append({"origin_date": origin["origin_date"], "target_date": target["origin_date"],
@@ -216,6 +281,8 @@ def evaluate(manifest, context_manifest):
                                    "last_training_target_index": training["last_training_target_index"],
                                    "always_up": 1.0, "latest_price_not_up": 0.0,
                                    "historical_up": training["historical_up_probability"],
+                                   **({"shared_fit_id": shared["fit_id"],
+                                       "pooled_last_training_target": shared["last_training_target"]} if shared else {}),
                                    **{name: probabilities[name][position] for name in MODELS}})
             labels = [point["actual_up"] for point in points]
             metrics = {name: classification_metrics(labels, [point[name] for point in points])
@@ -235,12 +302,13 @@ def main():
     parser = argparse.ArgumentParser(description="Validation-only logistic and LightGBM stock direction models")
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--context-manifest", type=Path, required=True)
+    parser.add_argument("--training-mode", choices=("separate", "pooled"), default="separate")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.output.exists():
             raise ValueError("output already exists; choose a new path")
-        report = evaluate(args.manifest.resolve(), args.context_manifest.resolve())
+        report = evaluate(args.manifest.resolve(), args.context_manifest.resolve(), args.training_mode)
         encoded = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
         with args.output.open("x", encoding="utf-8") as stream:
             stream.write(encoded)

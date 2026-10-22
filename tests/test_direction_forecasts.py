@@ -81,6 +81,58 @@ class DirectionTests(unittest.TestCase):
     def evaluate(self):
         return direction.evaluate(self.manifest, self.context_manifest)
 
+    def evaluate_pooled(self):
+        return direction.evaluate(self.manifest, self.context_manifest, "pooled")
+
+    def test_pooled_rows_are_date_sorted_with_common_cutoffs_and_per_asset_counts(self):
+        prepared = prepare_features(self.manifest, self.context_manifest)
+        histories = {group["symbol"]: group["points"] for group in prepared["results"]}
+        fold = self.dates[120]
+        for horizon in (1, 5, 20):
+            x, y, details = direction.pooled_training_data(histories, fold, horizon, 80)
+            expected = []
+            for symbol, points in histories.items():
+                local_x, local_y, local = direction.training_data(points, fold, horizon, 80)
+                self.assertEqual(details["by_asset"][symbol], local)
+                dates = [point["origin_date"] for point in points if
+                         local["first_training_origin"] <= point["origin_date"] <= local["last_training_origin"]]
+                expected.extend(zip(dates, [symbol] * len(dates), local_x, local_y))
+            expected.sort(key=lambda row: (row[0], row[1]))
+            self.assertEqual(x, [row[2] for row in expected])
+            self.assertEqual(y, [row[3] for row in expected])
+            self.assertEqual(details["training_rows"], 2 * (80 - horizon))
+            self.assertLess(details["last_training_target"], fold)
+            self.assertEqual((x, y, details), direction.pooled_training_data(
+                dict(reversed(list(histories.items()))), fold, horizon, 80))
+
+    def test_pooled_cutoff_is_a_date_not_an_index_shared_across_assets(self):
+        prepared = prepare_features(self.manifest, self.context_manifest)
+        histories = {group["symbol"]: group["points"] for group in prepared["results"]}
+        histories["FLAT"] = [{**point, "origin_index": point["origin_index"] - 30}
+                              for point in histories["FLAT"][30:]]
+        original = direction.pooled_training_data(histories, self.dates[120], 20, 80)
+        details = original[2]
+        self.assertEqual(details["by_asset"]["WAVE"]["last_training_target_index"], 119)
+        self.assertEqual(details["by_asset"]["FLAT"]["last_training_target_index"], 89)
+        self.assertEqual({item["last_training_target"] for item in details["by_asset"].values()}, {self.dates[119]})
+        for points in histories.values():
+            for point in points:
+                if point["origin_date"] >= self.dates[120]:
+                    point["current_price"] *= 100
+                    point["features"] = [999.0] * len(FEATURES)
+        self.assertEqual(original, direction.pooled_training_data(histories, self.dates[120], 20, 80))
+
+    def test_pooled_training_does_not_skip_assets_with_insufficient_labels(self):
+        prepared = prepare_features(self.manifest, self.context_manifest)
+        histories = {group["symbol"]: group["points"] for group in prepared["results"]}
+        histories["FLAT"] = histories["FLAT"][90:]
+        with self.assertRaisesRegex(ValueError, "FLAT.*no asset was dropped"):
+            direction.pooled_training_data(histories, self.dates[120], 20, 80)
+        with self.assertRaisesRegex(ValueError, "at least two assets"):
+            direction.pooled_training_data({"WAVE": histories["WAVE"]}, self.dates[120], 1, 80)
+        with self.assertRaisesRegex(ValueError, "training_mode"):
+            direction.evaluate(self.manifest, self.context_manifest, "invalid")
+
     def test_training_targets_and_features_stay_strictly_before_fold(self):
         points = prepare_features(self.manifest, self.context_manifest)["results"][0]["points"]
         for horizon in (1, 5, 20):
@@ -229,6 +281,80 @@ class DirectionTests(unittest.TestCase):
         command[-1] = str(self.directory / "blocked.json")
         self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
         self.assertEqual(json.loads(Path(command[-1]).read_bytes())["status"], "blocked")
+
+    @unittest.skipUnless(HAS_MODELS, "optional direction dependencies are not installed")
+    def test_pooled_fits_once_per_horizon_fold_with_training_only_scaling(self):
+        with patch.object(direction, "fit_predict", wraps=direction.fit_predict) as fitted:
+            report = self.evaluate_pooled()
+        self.assertEqual(report["training_mode"], "pooled")
+        self.assertEqual(fitted.call_count, 6)
+        self.assertEqual(len(report["shared_fits"]), 6)
+        self.assertEqual(len(report["results"]), 6)
+        shared = {item["fit_id"]: item for item in report["shared_fits"]}
+        for fit, call in zip(report["shared_fits"], fitted.call_args_list):
+            x, y, current = call.args
+            self.assertEqual(len(y), fit["training_rows"])
+            self.assertEqual(len(current), fit["predictions"])
+            self.assertEqual(fit["training_rows"], sum(item["training_rows"] for item in fit["by_asset"].values()))
+            self.assertEqual(set(fit["by_asset"]), {"WAVE", "FLAT"})
+            self.assertLess(fit["last_training_target"], fit["fold_start"])
+            for column, value in enumerate(fit["models"]["logistic"]["scaler_mean"]):
+                self.assertAlmostEqual(value, sum(row[column] for row in x) / len(x))
+        separate = self.evaluate()
+        for pooled, local in zip(report["results"], separate["results"]):
+            for before, after in zip(pooled["points"], local["points"]):
+                for key in ("origin_date", "target_date", "actual_up", "current_price", "actual_price",
+                            "historical_up", "always_up", "latest_price_not_up"):
+                    self.assertEqual(before[key], after[key])
+                self.assertLess(before["pooled_last_training_target"], before["fold_start"])
+                self.assertIn(before["shared_fit_id"], shared)
+            for name in direction.BASELINES:
+                self.assertEqual(pooled["metrics"][name], local["metrics"][name])
+
+    @unittest.skipUnless(HAS_MODELS, "optional direction dependencies are not installed")
+    def test_pooled_predictions_do_not_depend_on_manifest_order(self):
+        original = self.evaluate_pooled()
+        self.config["assets"].reverse()
+        self.save_manifests()
+        changed = self.evaluate_pooled()
+        by_key = lambda report: {(group["symbol"], group["horizon_days"]): group for group in report["results"]}
+        self.assertEqual(by_key(original), by_key(changed))
+        by_id = lambda report: {fit["fit_id"]: fit for fit in report["shared_fits"]}
+        self.assertEqual(by_id(original), by_id(changed))
+        self.assertEqual(original["aggregate_metrics"], changed["aggregate_metrics"])
+
+    @unittest.skipUnless(HAS_MODELS, "optional direction dependencies are not installed")
+    def test_pooled_reserved_and_other_asset_future_data_do_not_leak(self):
+        original = self.evaluate_pooled()
+        for symbol in ("WAVE", "FLAT", *CONTEXT_SYMBOLS):
+            self.mutate(symbol, 320, reserved=True)
+        reserved = self.evaluate_pooled()
+        self.assertEqual(original["results"], reserved["results"])
+        self.assertEqual(original["shared_fits"], reserved["shared_fits"])
+        self.mutate("FLAT", 180)
+        changed = self.evaluate_pooled()
+        for before, after in zip(original["results"], changed["results"]):
+            for first, second in zip(before["points"], after["points"]):
+                if first["target_date"] < self.dates[180]:
+                    self.assertEqual(first, second)
+        for before, after in zip(original["shared_fits"], changed["shared_fits"]):
+            if before["fold_start"] == self.dates[120]:
+                self.assertEqual(before, after)
+
+    @unittest.skipUnless(HAS_MODELS, "optional direction dependencies are not installed")
+    def test_pooled_cli_flag_no_overwrite_and_no_fit_fallback(self):
+        output = self.directory / "pooled.json"
+        command = [sys.executable, str(ROOT / "python/direction_forecasts.py"), "--manifest", str(self.manifest),
+                   "--context-manifest", str(self.context_manifest), "--training-mode", "pooled", "--output", str(output)]
+        process = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        saved = output.read_bytes()
+        self.assertEqual(json.loads(saved)["training_mode"], "pooled")
+        self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+        self.assertEqual(saved, output.read_bytes())
+        with patch.object(direction, "fit_predict", side_effect=ValueError("simulated failure")):
+            with self.assertRaisesRegex(ValueError, "simulated failure"):
+                self.evaluate_pooled()
 
 
 if __name__ == "__main__":
