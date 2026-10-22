@@ -15,6 +15,7 @@ Start with the [tool guides](../apps/README.md) for commands or the
 - [Matched-date comparison and data checks](matched-forecast.md).
 - [OHLCV and market-context features](stock-features.md).
 - [Logistic and LightGBM direction classifiers](direction-forecast.md).
+- [Pooled cross-stock training](pooled-direction.md).
 - [Ridge](ridge-forecast.md), [ensemble](ensemble-forecast.md),
   [ARIMA/ETS](classical-forecast.md) and [LightGBM](boosted-forecast.md).
 - [Empirical forecast ranges](residual-forecast.md).

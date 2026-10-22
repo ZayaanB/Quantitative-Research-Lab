@@ -61,10 +61,13 @@ report; fit/configuration failures save no partial scores. Existing files are
 never overwritten. Probability reports are rejected by the point-price matched
 runner so they cannot accidentally be treated as dollar forecasts.
 
+For an opt-in shared fit across stocks, see [pooled direction](pooled-direction.md).
+Separate training remains the default and keeps the original origin grids.
+
 This is inspected validation, not final-test evidence. Annual refits also differ
 from the price regressor's per-origin fits: a difference is not proof that the
-features alone caused an improvement. Final testing, model selection, pooling
-and probability calibration remain separate milestones.
+features alone caused an improvement. Final testing, model selection and
+probability calibration remain separate milestones.
 
 ## October 20 validation
 

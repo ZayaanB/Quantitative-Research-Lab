@@ -66,6 +66,8 @@ The [direction classifiers](../../docs/direction-forecast.md) use the expanded
 features with training-only scaling and fixed yearly fits. Their output is
 up/not-up probability, not a price forecast. Install `requirements-direction.txt`
 and run that guide's command; existing regression commands stay unchanged.
+Use `--training-mode pooled` for [shared cross-stock training](../../docs/pooled-direction.md);
+per-stock training remains the default, with identical evaluation dates.
 
 Our small 2015–2017 Apple diagnostic did not beat latest price. More features
 are hypotheses to test, not promised improvements. Do not tune on the final
