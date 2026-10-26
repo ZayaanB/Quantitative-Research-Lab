@@ -92,7 +92,9 @@ def fit_pooled_fold(histories, schedules, fold, horizon, lookback):
                     **training, "predictions": len(requests), "models": diagnostics}
 
 
-def fit_predict(x, y, current):
+def fit_predict(x, y, current, *, model_names=MODELS, logistic_parameters=None, binary_parameters=None):
+    if not model_names or len(set(model_names)) != len(model_names) or any(name not in MODELS for name in model_names):
+        raise ValueError("request distinct supported direction models")
     import lightgbm as lgb
     import numpy as np
     from sklearn.exceptions import ConvergenceWarning
@@ -107,27 +109,32 @@ def fit_predict(x, y, current):
             not np.isfinite(train).all() or not np.isfinite(observed).all()):
         raise ValueError("invalid direction training or prediction matrix")
     if len(set(y)) == 1:
-        return ({name: [float(y[0])] * len(observed) for name in MODELS},
+        return ({name: [float(y[0])] * len(observed) for name in model_names},
                 {name: {"fit_kind": "constant_single_class", "constant_probability": float(y[0])}
-                 for name in MODELS})
+                 for name in model_names})
+    probabilities, diagnostics = {}, {}
     try:
         with threadpool_limits(limits=1), warnings.catch_warnings():
             warnings.simplefilter("error", ConvergenceWarning)
-            scaler = StandardScaler().fit(train)
-            logistic = LogisticRegression(**LOGISTIC_PARAMETERS).fit(scaler.transform(train), target)
-            linear = logistic.predict_proba(scaler.transform(observed))[:, list(logistic.classes_).index(1)]
-            dataset = lgb.Dataset(train, label=target, feature_name=list(FEATURES))
-            boosted = lgb.train(dict(BINARY_PARAMETERS), dataset, num_boost_round=ROUNDS)
-            binary = boosted.predict(observed, num_threads=1)
+            if "logistic" in model_names:
+                scaler = StandardScaler().fit(train)
+                settings = {**LOGISTIC_PARAMETERS, **(logistic_parameters or {})}
+                logistic = LogisticRegression(**settings).fit(scaler.transform(train), target)
+                linear = logistic.predict_proba(scaler.transform(observed))[:, list(logistic.classes_).index(1)]
+                probabilities["logistic"] = linear.tolist()
+                diagnostics["logistic"] = {"fit_kind": "native", "iterations": int(logistic.n_iter_[0]),
+                                            "scaler_mean": scaler.mean_.tolist(), "scaler_scale": scaler.scale_.tolist()}
+            if "lightgbm" in model_names:
+                dataset = lgb.Dataset(train, label=target, feature_name=list(FEATURES))
+                boosted = lgb.train({**BINARY_PARAMETERS, **(binary_parameters or {})}, dataset, num_boost_round=ROUNDS)
+                probabilities["lightgbm"] = boosted.predict(observed, num_threads=1).tolist()
+                diagnostics["lightgbm"] = {"fit_kind": "native", "trees": boosted.current_iteration()}
     except (ConvergenceWarning, lgb.basic.LightGBMError, ValueError, FloatingPointError) as error:
         raise ValueError(f"direction fit/prediction failed, no fallback applied: {error}") from error
-    probabilities = {"logistic": linear.tolist(), "lightgbm": binary.tolist()}
-    if any(not math.isfinite(value) or not 0 <= value <= 1
+    if any(len(values) != len(observed) for values in probabilities.values()) or any(not math.isfinite(value) or not 0 <= value <= 1
            for values in probabilities.values() for value in values):
         raise ValueError("direction model returned an invalid probability")
-    return probabilities, {"logistic": {"fit_kind": "native", "iterations": int(logistic.n_iter_[0]),
-                                        "scaler_mean": scaler.mean_.tolist(), "scaler_scale": scaler.scale_.tolist()},
-                           "lightgbm": {"fit_kind": "native", "trees": boosted.current_iteration()}}
+    return probabilities, diagnostics
 
 
 def classification_metrics(labels, probabilities):
@@ -159,14 +166,14 @@ def classification_metrics(labels, probabilities):
             "reliability_bins": bins}
 
 
-def paired_uncertainty(points, settings):
+def paired_uncertainty(points, settings, models=MODELS, brier_reference="historical_up"):
     import numpy as np
 
     names, deltas = [], []
-    for model in MODELS:
-        names.extend((f"{model}_accuracy_gain_vs_always_up", f"{model}_brier_reduction_vs_historical_up"))
+    for model in models:
+        names.extend((f"{model}_accuracy_gain_vs_always_up", f"{model}_brier_reduction_vs_{brier_reference}"))
         deltas.extend(([(int(point[model] >= 0.5) == point["actual_up"]) - point["actual_up"] for point in points],
-                       [(point["historical_up"] - point["actual_up"]) ** 2 -
+                       [(point[brier_reference] - point["actual_up"]) ** 2 -
                         (point[model] - point["actual_up"]) ** 2 for point in points]))
     differences = np.asarray(deltas, dtype=np.float64).T
     count = len(points)

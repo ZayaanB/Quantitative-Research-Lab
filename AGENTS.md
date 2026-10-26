@@ -130,6 +130,7 @@ documented requirements in `.venv`:
 Default CTest may skip optional model cases; a skip is not a tested native fit.
 For direction-model changes, install `python/requirements-direction.txt` in
 `.venv` and also run `.venv/bin/python tests/test_direction_forecasts.py`.
+For selection/calibration changes, also run `.venv/bin/python tests/test_calibrated_direction.py`.
 For documentation-only changes, check local links, commands and `git diff --check`.
 Report what actually ran, failures/skips and remaining limitations. No test suite
 can justify a claim that all bugs are impossible.

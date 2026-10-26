@@ -31,6 +31,11 @@ Day 4 completed October 21, 2026: [pooled cross-stock training](pooled-direction
 Expanded the predeclared sample to ten stocks and compared both modes on matched
 dates. Pooling did not beat always-up overall; per-stock training stays default.
 
+Day 5 completed October 21, 2026: [past-only selection and calibration](calibrated-direction.md).
+The fixed search chose the historical-frequency baseline in 16/18 outer folds.
+Brier scores improved after adjustment, but direction still trailed always-up.
+Both existing modes are unchanged, and the reserved final period stays unscored.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |

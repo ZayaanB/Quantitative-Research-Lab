@@ -144,6 +144,8 @@ if(BUILD_TESTING)
     add_test(NAME mc_tests COMMAND mc_tests)
     find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
+        add_test(NAME calibrated_direction_models
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_calibrated_direction.py)
         add_test(NAME stock_direction_models
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_direction_forecasts.py)
         add_test(NAME stock_feature_pipeline
