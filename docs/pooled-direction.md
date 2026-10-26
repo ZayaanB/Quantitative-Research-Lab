@@ -47,6 +47,8 @@ Compare identical asset/horizon groups and origin/target prices, not just headli
 percentages. Existing within-stock bootstrap intervals are sensitivity checks;
 shared training and correlated stocks do not make an independent larger sample.
 There is no pooled cross-stock significance claim or automatic model promotion.
+For an opt-in fixed search with past-only calibration, see the
+[selection experiment](calibrated-direction.md).
 
 ## Broader inputs
 

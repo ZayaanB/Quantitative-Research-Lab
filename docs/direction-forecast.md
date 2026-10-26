@@ -66,8 +66,8 @@ Separate training remains the default and keeps the original origin grids.
 
 This is inspected validation, not final-test evidence. Annual refits also differ
 from the price regressor's per-origin fits: a difference is not proof that the
-features alone caused an improvement. Final testing, model selection and
-probability calibration remain separate milestones.
+features alone caused an improvement. [Model selection and probability calibration](calibrated-direction.md)
+are a separate opt-in experiment; final testing remains a later milestone.
 
 ## October 20 validation
 

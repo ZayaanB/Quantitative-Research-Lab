@@ -213,6 +213,28 @@ class DirectionTests(unittest.TestCase):
                 direction.fit_predict(x, y, [x[-1]])
 
     @unittest.skipUnless(HAS_MODELS, "optional direction dependencies are not installed")
+    def test_single_model_search_controls_preserve_default_fits(self):
+        import lightgbm
+        from sklearn.linear_model import LogisticRegression
+        x = [[math.sin(index / 5 + column) for column in range(len(FEATURES))] for index in range(80)]
+        y = [index % 2 for index in range(80)]
+        both, diagnostics = direction.fit_predict(x, y, [x[-1]])
+        for name in direction.MODELS:
+            single, fitted = direction.fit_predict(x, y, [x[-1]], model_names=(name,))
+            self.assertEqual(single, {name: both[name]})
+            self.assertEqual(fitted, {name: diagnostics[name]})
+        with patch("sklearn.linear_model.LogisticRegression", wraps=LogisticRegression) as fitted:
+            direction.fit_predict(x, y, [x[-1]], model_names=("logistic",), logistic_parameters={"C": 0.1})
+            self.assertEqual(fitted.call_args.kwargs["C"], 0.1)
+        with patch.object(lightgbm, "train", wraps=lightgbm.train) as fitted:
+            direction.fit_predict(x, y, [x[-1]], model_names=("lightgbm",), binary_parameters={"lambda_l2": 10.0})
+            self.assertEqual(fitted.call_args.args[0]["lambda_l2"], 10.0)
+        self.assertEqual(direction.LOGISTIC_PARAMETERS["C"], 1.0)
+        self.assertEqual(direction.BINARY_PARAMETERS["lambda_l2"], 1.0)
+        with self.assertRaisesRegex(ValueError, "supported"):
+            direction.fit_predict(x, y, [x[-1]], model_names=("unknown",))
+
+    @unittest.skipUnless(HAS_MODELS, "optional direction dependencies are not installed")
     def test_yearly_folds_matched_origins_and_baselines(self):
         report = self.evaluate()
         self.assertEqual(report["task"], "binary_direction")
