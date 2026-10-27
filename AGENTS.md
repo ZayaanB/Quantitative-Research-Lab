@@ -87,7 +87,7 @@ implementation and preserve established commands unless a migration is requested
   2024 onward is downloaded but unscored in that comparison; treat it only as a
   candidate final period, not a completed test or replacement for the old missing holdout.
 - No model family is assumed best. Keep baseline results when challengers lose.
-  Implement only the requested milestone; neural and energy work remain planned.
+  Implement only the requested milestone; the optional CNN is experimental and energy remains planned.
 
 ## Safety and repository hygiene
 
@@ -131,6 +131,8 @@ Default CTest may skip optional model cases; a skip is not a tested native fit.
 For direction-model changes, install `python/requirements-direction.txt` in
 `.venv` and also run `.venv/bin/python tests/test_direction_forecasts.py`.
 For selection/calibration changes, also run `.venv/bin/python tests/test_calibrated_direction.py`.
+For CNN changes, install the documented CPU-only requirements and also run
+`.venv/bin/python tests/test_neural_direction.py`; default CTest may skip native fits.
 For documentation-only changes, check local links, commands and `git diff --check`.
 Report what actually ran, failures/skips and remaining limitations. No test suite
 can justify a claim that all bugs are impossible.

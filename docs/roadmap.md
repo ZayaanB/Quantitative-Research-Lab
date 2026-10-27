@@ -8,7 +8,8 @@ this plan does not mean the future features are already implemented.
 
 Working: option pricing, European Greeks CLI, stock GBM, walk-forward evaluation,
 ridge/ensemble, ARIMA/ETS, LightGBM regression and a validated history downloader.
-Energy has a guide but no importer or runner. Neural models have not been built.
+Energy has a guide but no importer or runner. One optional CPU CNN is available
+as a fixed validation experiment, not an enabled forecast model.
 
 The October 17 download contains AAPL/MSFT/GOOGL and SPY/QQQ/XLK daily OHLCV.
 The fixed 2018–2023 comparison found no useful stock edge. Keep those outcomes;
@@ -35,6 +36,11 @@ Day 5 completed October 21, 2026: [past-only selection and calibration](calibrat
 The fixed search chose the historical-frequency baseline in 16/18 outer folds.
 Brier scores improved after adjustment, but direction still trailed always-up.
 Both existing modes are unchanged, and the reserved final period stays unscored.
+
+Day 6 completed October 26, 2026: [small CPU CNN](neural-direction.md).
+Its ten-stock validation hit rates and Brier scores lost to the relevant baselines.
+Keep the reproducibility experiment only; no model promotion or neural expansion.
+Existing defaults and the reserved period are unchanged.
 
 | Day | Build | Completion check |
 | --- | --- | --- |

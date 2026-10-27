@@ -70,6 +70,8 @@ Use `--training-mode pooled` for [shared cross-stock training](../../docs/pooled
 per-stock training remains the default, with identical evaluation dates.
 The [selection/calibration runner](../../docs/calibrated-direction.md) adds a
 small fixed search and past-only sigmoid adjustment without changing either mode.
+The [small CPU CNN](../../docs/neural-direction.md) is a separate fixed-seed
+sequence experiment, with no pretrained weights or GPU requirement.
 
 Our small 2015–2017 Apple diagnostic did not beat latest price. More features
 are hypotheses to test, not promised improvements. Do not tune on the final
