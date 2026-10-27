@@ -17,6 +17,7 @@ Start with the [tool guides](../apps/README.md) for commands or the
 - [Logistic and LightGBM direction classifiers](direction-forecast.md).
 - [Pooled cross-stock training](pooled-direction.md).
 - [Past-only model selection and calibration](calibrated-direction.md).
+- [Optional CPU CNN challenger](neural-direction.md).
 - [Ridge](ridge-forecast.md), [ensemble](ensemble-forecast.md),
   [ARIMA/ETS](classical-forecast.md) and [LightGBM](boosted-forecast.md).
 - [Empirical forecast ranges](residual-forecast.md).
