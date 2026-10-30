@@ -24,3 +24,7 @@ in the virtual environment:
 Quantitative tests compare with analytical values or meaningful baselines.
 Future-data mutation tests check for leakage. A passing suite supports the
 implementation; it does not establish predictive accuracy or absence of all bugs.
+
+Energy importer/baseline tests need only the standard library and OS zone data:
+`python3 tests/test_energy_baselines.py`. They cover DST, hour endings, missing
+data, availability, recursive seasonal sources, provenance and offline downloads.
