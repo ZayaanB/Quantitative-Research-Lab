@@ -7,6 +7,7 @@ Start with the [tool guides](../apps/README.md) for commands or the
 
 - [Architecture](architecture.md) and [pricing mathematics](mathematics.md).
 - [Research and algorithm priorities](forecast-model-research.md).
+- [Ontario hourly-demand importer and seasonal baselines](../apps/energy/README.md).
 
 ## Stock workflows
 

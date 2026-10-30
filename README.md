@@ -1,7 +1,7 @@
 # Monte Carlo Options Engine
 
 C++20 option pricing and Greeks, with separate stock-prediction experiments
-and a planned energy-demand forecasting track.
+and separate hourly-demand baselines.
 No execution or brokerage integration. Forecasts are research outputs, not
 demonstrated trading signals.
 
@@ -26,7 +26,7 @@ All commands run from the repository root. Each folder has its own quick start.
 | [Greek calculator](apps/greeks/README.md) | European Delta, Gamma and Vega | Implemented |
 | [Stock forecast](apps/forecast/README.md) | Historical GBM scenarios and walk-forward checks | Implemented |
 | [Stock prediction](apps/prediction/README.md) | Ridge, ensemble, ARIMA/ETS and LightGBM experiments | Experimental |
-| [Energy forecast](apps/energy/README.md) | Separate hourly-demand project and data contract | Planned; no runner yet |
+| [Energy forecast](apps/energy/README.md) | Ontario hourly-demand importer and seasonal baselines | Retrospective experiment |
 
 Forecast and prediction are two workflows, not different promises of accuracy.
 Neither has established a reliable stock-price edge over the latest-price
@@ -40,7 +40,8 @@ not an assumed accuracy upgrade.
 ./build/mcprice --help
 ```
 
-The app folders are documentation entry points. Shared implementation stays in
+The app folders are documentation entry points; the separate energy importer
+and runner also live in `apps/energy/`. Shared implementation stays in
 `include/mc/`, `src/` and `python/`; tests stay in `tests/`. Private datasets and
 experiment outputs belong in the ignored `Notes-dont-commit/` folder.
 

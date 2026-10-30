@@ -3,7 +3,7 @@
 ## Project scope
 
 This is a quantitative research workspace: C++20 derivatives pricing and Greeks,
-historical stock scenarios, experimental stock prediction, and a separate planned
+historical stock scenarios, experimental stock prediction, and a separate
 energy-demand forecasting project. Stock/energy forecasting is explicitly in
 scope. It must not silently change risk-neutral option-pricing inputs.
 
@@ -22,7 +22,7 @@ in unattended runs unless learning mode was explicitly requested.
 - `include/mc/`, `src/`: public C++ types, pricing, statistics, stock GBM and CLI.
 - `python/`: shared evaluation utilities, stock experiments, downloads and plots.
 - `apps/`: per-tool README entry points; existing shared code is not duplicated.
-- `apps/energy/`: planned dedicated hourly-demand importer and runner.
+- `apps/energy/`: dedicated IESO hourly-demand importer and seasonal baseline runner.
 - `tests/`: C++ and Python regression tests, including offline downloader tests.
 - `examples/`: small synthetic fixtures and manifest templates, never real results.
 - `benchmarks/`, `results/`: measured performance and reproducibility evidence.
@@ -87,7 +87,11 @@ implementation and preserve established commands unless a migration is requested
   2024 onward is downloaded but unscored in that comparison; treat it only as a
   candidate final period, not a completed test or replacement for the old missing holdout.
 - No model family is assumed best. Keep baseline results when challengers lose.
-  Implement only the requested milestone; the optional CNN is experimental and energy remains planned.
+  Implement only the requested milestone; the optional CNN is experimental.
+- Energy uses fixed EST hour-ending data, UTC intervals and Toronto calendar times.
+  Annual IESO files are revised, not point-in-time. The baseline's next-day 08:00
+  EST availability rule is assumed, not verified historical publication timing.
+  Disclose seasonal recursion for unreleased lags; never fill missing available rows.
 
 ## Safety and repository hygiene
 
@@ -133,6 +137,7 @@ For direction-model changes, install `python/requirements-direction.txt` in
 For selection/calibration changes, also run `.venv/bin/python tests/test_calibrated_direction.py`.
 For CNN changes, install the documented CPU-only requirements and also run
 `.venv/bin/python tests/test_neural_direction.py`; default CTest may skip native fits.
+For energy changes, also run `python3 tests/test_energy_baselines.py` (standard library only).
 For documentation-only changes, check local links, commands and `git diff --check`.
 Report what actually ran, failures/skips and remaining limitations. No test suite
 can justify a claim that all bugs are impossible.

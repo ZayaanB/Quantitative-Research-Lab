@@ -8,7 +8,7 @@ this plan does not mean the future features are already implemented.
 
 Working: option pricing, European Greeks CLI, stock GBM, walk-forward evaluation,
 ridge/ensemble, ARIMA/ETS, LightGBM regression and a validated history downloader.
-Energy has a guide but no importer or runner. One optional CPU CNN is available
+Energy has an hourly-demand importer and seasonal baselines. One optional CPU CNN is available
 as a fixed validation experiment, not an enabled forecast model.
 
 The October 17 download contains AAPL/MSFT/GOOGL and SPY/QQQ/XLK daily OHLCV.
@@ -41,6 +41,12 @@ Day 6 completed October 26, 2026: [small CPU CNN](neural-direction.md).
 Its ten-stock validation hit rates and Brier scores lost to the relevant baselines.
 Keep the reproducibility experiment only; no model promotion or neural expansion.
 Existing defaults and the reserved period are unchanged.
+
+Day 7 completed October 29, 2026: [Ontario demand baselines](../apps/energy/README.md).
+Imported a complete 2023 IESO snapshot and tested fixed EST, DST and availability.
+The declared 357-origin diagnostic gave daily/weekly MAE of 871/1,035 MW.
+Annual revised data and an assumed next-day release make this retrospective,
+not a point-in-time accuracy claim. Energy LightGBM remains Day 8.
 
 | Day | Build | Completion check |
 | --- | --- | --- |
