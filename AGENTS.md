@@ -22,7 +22,7 @@ in unattended runs unless learning mode was explicitly requested.
 - `include/mc/`, `src/`: public C++ types, pricing, statistics, stock GBM and CLI.
 - `python/`: shared evaluation utilities, stock experiments, downloads and plots.
 - `apps/`: per-tool README entry points; existing shared code is not duplicated.
-- `apps/energy/`: dedicated IESO hourly-demand importer and seasonal baseline runner.
+- `apps/energy/`: IESO hourly-demand importer, seasonal baselines and optional CPU LightGBM.
 - `tests/`: C++ and Python regression tests, including offline downloader tests.
 - `examples/`: small synthetic fixtures and manifest templates, never real results.
 - `benchmarks/`, `results/`: measured performance and reproducibility evidence.
@@ -138,6 +138,8 @@ For selection/calibration changes, also run `.venv/bin/python tests/test_calibra
 For CNN changes, install the documented CPU-only requirements and also run
 `.venv/bin/python tests/test_neural_direction.py`; default CTest may skip native fits.
 For energy changes, also run `python3 tests/test_energy_baselines.py` (standard library only).
+For energy model changes, install `apps/energy/requirements.txt` in `.venv` and
+run `.venv/bin/python tests/test_energy_lightgbm.py`; default CTest may skip native fits.
 For documentation-only changes, check local links, commands and `git diff --check`.
 Report what actually ran, failures/skips and remaining limitations. No test suite
 can justify a claim that all bugs are impossible.

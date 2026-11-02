@@ -1,13 +1,13 @@
 # Ontario demand forecasting
 
-Working: a separate IESO hourly-demand importer and two seasonal baselines.
-No energy ML model yet; LightGBM is [Day 8](../../docs/roadmap.md).
+Working: an IESO hourly-demand importer, seasonal baselines and optional CPU
+LightGBM validation. Uncertainty estimates remain [Day 9](../../docs/roadmap.md).
 This predicts demand in MW, not electricity prices or stock prices.
 
 ## Run it
 
 From the repository root, with Python 3.9+ and the OS time-zone database.
-No extra Python packages or GPU are needed. Use new output paths for each run.
+The importer/baselines need no extra packages or GPU. Use new output paths.
 
 ```bash
 python3 apps/energy/ieso.py --year 2023 \
@@ -58,6 +58,54 @@ again until it is. At an 08:00 origin, the daily baseline uses a two-day lag for
 Missing available sources fail rather than silently switching models or dates.
 The horizon is `[origin, origin + 24 hours)`; no realized horizon loads are used.
 
+## CPU LightGBM
+
+Download 2018–2022 into separate `ieso-2018`, ..., `ieso-2022` snapshots using
+the importer above; keep the existing `ieso-2023` snapshot. Then:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r apps/energy/requirements.txt
+.venv/bin/python apps/energy/boosted_demand.py --csv \
+  Notes-dont-commit/energy/ieso-2018/PUB_Demand_2018.csv \
+  Notes-dont-commit/energy/ieso-2019/PUB_Demand_2019.csv \
+  Notes-dont-commit/energy/ieso-2020/PUB_Demand_2020.csv \
+  Notes-dont-commit/energy/ieso-2021/PUB_Demand_2021.csv \
+  Notes-dont-commit/energy/ieso-2022/PUB_Demand_2022.csv \
+  Notes-dont-commit/energy/ieso-2023/PUB_Demand_2023.csv \
+  --retrospective --output Notes-dont-commit/energy/lightgbm-validation.json
+.venv/bin/python tests/test_energy_lightgbm.py
+```
+
+One fixed fit uses January 15, 2018–2021 origins and 19 calendar/available-load
+features. The first 14 days supply history; the last training window is purged
+because its labels cross the boundary. Training labels must also be available
+at the fit origin. Validation covers January 1, 2022–December 30, 2023 origins.
+No validation labels enter the fit, and there is no tuning or early stopping.
+
+The regressor pools all 24 lead-hour rows, using local/market calendar fields,
+available 24/48/168/336-hour seasonal loads and recent day/week summaries.
+It uses 200 rounds, learning rate 0.05, 31 leaves, depth 6 and L2 penalty 5,
+with one CPU thread. Missing inputs or invalid predictions fail without fallback.
+Reports preserve the model text/hash, dependency versions and source timestamps.
+`--train-start`, `--train-end`, `--start` and `--end` are configurable, but this
+development runner refuses evaluation beyond the declared 2023 boundary.
+
+October 30 comparison: 729 matched origins, 17,496 hourly targets; one fit on
+34,704 training rows. About 6.9 s including preparation/fit, excluding JSON output,
+on the same laptop (LightGBM 4.7.0, NumPy 2.5.3, CPU only).
+
+| Model | MAE (MW) | RMSE (MW) | WAPE | Window peak MAE (MW) |
+| --- | --- | --- | --- | --- |
+| Daily baseline | 879.34 | 1,180.86 | 5.61% | 802.84 |
+| Weekly baseline | 1,095.77 | 1,505.39 | 6.99% | 1,238.53 |
+| LightGBM | 645.18 | 869.34 | 4.11% | 676.29 |
+
+LightGBM reduced MAE by 26.6% versus the matched daily baseline. Its mean bias
+was −109.60 MW, so it tended to underpredict. This is inspected validation on
+revised data with assumed availability, not a live result or a significance test.
+The earlier Day 7 sample below uses different dates and is not the comparator.
+
 ## Data and next steps
 
 Source: [IESO annual demand reports](https://reports-public.ieso.ca/public/Demand/),
@@ -78,8 +126,8 @@ development laptop (i9-13900H, Python 3.12, Linux; excluding download/JSON).
 | Weekly | 1,034.76 | 1,468.39 | 6.61% |
 
 These are errors, not classification hit rates or `100 − error` accuracy.
-For Day 8, the proposed chronological split is training 2018–2021 and
-validation 2022–2023. Energy 2024–2025 remains an unscored candidate final period;
+The fixed split is training 2018–2021 and validation 2022–2023.
+Energy 2024–2025 remains an unscored candidate final period;
 freeze the complete procedure before using it. Revised-data results still need
 historical vintages or prospective collection before any operational claim.
 Weather is excluded until archived forecasts available at each origin exist.
