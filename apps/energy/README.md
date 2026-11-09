@@ -1,7 +1,7 @@
 # Ontario demand forecasting
 
-Working: an IESO hourly-demand importer, seasonal baselines and optional CPU
-LightGBM validation. Uncertainty estimates remain [Day 9](../../docs/roadmap.md).
+Working: an IESO importer, seasonal baselines, CPU LightGBM and calibrated
+demand ranges. All remain retrospective research, not a live forecasting service.
 This predicts demand in MW, not electricity prices or stock prices.
 
 ## Run it
@@ -35,7 +35,7 @@ chronological order, from separate snapshots.
 Both models score identical hourly targets. Reports include MAE, RMSE, bias,
 WAPE (an error percentage), peak-magnitude error for each 24-hour window,
 runtime, predictions, source timestamps and file/code hashes. Peak error is
-not peak timing or Toronto calendar-day peak error. No uncertainty intervals yet.
+not peak timing or Toronto calendar-day peak error. Ranges have a separate runner below.
 
 ## Time and availability
 
@@ -105,6 +105,50 @@ LightGBM reduced MAE by 26.6% versus the matched daily baseline. Its mean bias
 was −109.60 MW, so it tended to underpredict. This is inspected validation on
 revised data with assumed availability, not a live result or a significance test.
 The earlier Day 7 sample below uses different dates and is not the comparator.
+
+## Demand ranges
+
+Use the same six snapshots and optional requirements as above:
+
+```bash
+.venv/bin/python apps/energy/uncertainty.py --csv \
+  Notes-dont-commit/energy/ieso-2018/PUB_Demand_2018.csv \
+  Notes-dont-commit/energy/ieso-2019/PUB_Demand_2019.csv \
+  Notes-dont-commit/energy/ieso-2020/PUB_Demand_2020.csv \
+  Notes-dont-commit/energy/ieso-2021/PUB_Demand_2021.csv \
+  Notes-dont-commit/energy/ieso-2022/PUB_Demand_2022.csv \
+  Notes-dont-commit/energy/ieso-2023/PUB_Demand_2023.csv \
+  --retrospective --output Notes-dont-commit/energy/demand-ranges.json
+.venv/bin/python tests/test_energy_uncertainty.py
+```
+
+The 5th/95th quantile models use the same training years, features and settings.
+A widening-only [conformalized quantile regression](https://arxiv.org/abs/1905.03222)
+correction is fitted on 2022 and frozen before 2023 evaluation. Scores are
+`max(lower − actual, actual − upper, 0)`; take order statistic
+`ceil((n+1) × 0.9)`. Crossing bounds are sorted and counted. Lower bounds cannot
+be negative. The December 31 calibration window is purged because it crosses
+the boundary; every retained label must be available at the first scoring origin.
+The native fits use [LightGBM's quantile objective](https://lightgbm.readthedocs.io/en/stable/Parameters.html#objective).
+
+November 2 run: 8,736 calibration rows and 8,736 scoring rows; about 13 s on the
+same CPU. The correction widened each side by 312.61 MW. No quantiles crossed.
+
+| 2023 ranges | Coverage | Mean width (MW) | Mean endpoint pinball loss (MW) |
+| --- | --- | --- | --- |
+| Raw | 83.54% | 2,149.06 | 88.55 |
+| Calibrated | 92.38% | 2,774.29 | 86.09 |
+
+The report includes sample counts, coverage, width, pinball and interval score
+by target Toronto hour and meteorological season. Calibrated seasonal coverage
+was 91.7–93.0%; hourly coverage was 87.6–96.4%. Repeated DST hours remain distinct
+observations, grouped under the same local-hour label. Day 8 point predictions
+and baselines are unchanged on matched rows; this does not improve point accuracy.
+
+The 90% target is marginal, not a guarantee for each hour/season or all 24 hours
+together. Serial dependence, revised data and distribution changes prevent a
+standard exchangeability-based live coverage claim. This is inspected validation,
+not an untouched final test. Weather is still excluded.
 
 ## Data and next steps
 

@@ -92,7 +92,9 @@ def training_data(observations, start, end):
         "boundary_utc": iso(boundary), "rule": "whole windows; labels end by boundary and are available at fit origin"}
 
 
-def fit_model(training, labels):
+def fit_model(training, labels, *, quantile=None):
+    if quantile is not None and (type(quantile) not in (int, float) or not 0 < quantile < 1):
+        raise ValueError("quantile must be finite and strictly between zero and one")
     try:
         import lightgbm as lgb
         import numpy as np
@@ -103,8 +105,11 @@ def fit_model(training, labels):
             len(y) < MIN_TRAIN_ORIGINS * 24 or not np.isfinite(x).all() or
             not np.isfinite(y).all() or (y < 0).any()):
         raise ValueError("invalid native energy training matrix or labels")
+    parameters = dict(PARAMETERS)
+    if quantile is not None:
+        parameters.update(objective="quantile", alpha=quantile)
     try:
-        model = lgb.train(dict(PARAMETERS), lgb.Dataset(x, label=y, feature_name=list(FEATURES)), num_boost_round=ROUNDS)
+        model = lgb.train(parameters, lgb.Dataset(x, label=y, feature_name=list(FEATURES)), num_boost_round=ROUNDS)
     except lgb.basic.LightGBMError as error:
         raise ValueError(f"energy model fit failed; no fallback: {error}") from error
     return model

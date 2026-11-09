@@ -30,3 +30,5 @@ Energy importer/baseline tests need only the standard library and OS zone data:
 data, availability, recursive seasonal sources, provenance and offline downloads.
 For the CPU energy model, install `apps/energy/requirements.txt` in `.venv` and
 run `.venv/bin/python tests/test_energy_lightgbm.py` to exercise native fits too.
+For demand ranges, also run `.venv/bin/python tests/test_energy_uncertainty.py`;
+it checks rank/metrics, boundary purges, unchanged point fits and future-label mutation.
