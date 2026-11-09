@@ -26,7 +26,7 @@ All commands run from the repository root. Each folder has its own quick start.
 | [Greek calculator](apps/greeks/README.md) | European Delta, Gamma and Vega | Implemented |
 | [Stock forecast](apps/forecast/README.md) | Historical GBM scenarios and walk-forward checks | Implemented |
 | [Stock prediction](apps/prediction/README.md) | Ridge, ensemble, ARIMA/ETS and LightGBM experiments | Experimental |
-| [Energy forecast](apps/energy/README.md) | Ontario hourly-demand importer and seasonal baselines | Retrospective experiment |
+| [Energy forecast](apps/energy/README.md) | Ontario demand baselines, LightGBM and ranges | Retrospective experiment |
 
 Forecast and prediction are two workflows, not different promises of accuracy.
 Neither has established a reliable stock-price edge over the latest-price

@@ -50,7 +50,7 @@ def metrics(points, windows, model):
             "hourly_bias_mw": math.fsum(errors) / len(errors),
             "wape_percent": 100 * absolute / total if total else None,
             "window_peak_mae_mw": math.fsum(abs(window["peak_errors_mw"][model]) for window in windows) / len(windows),
-            "recursive_hours": sum(point["models"][model]["lag_periods"] > 1 for point in points)}
+            "recursive_hours": sum(point["models"][model].get("lag_periods", 1) > 1 for point in points)}
 
 
 def backtest(observations, start, end):

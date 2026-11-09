@@ -48,6 +48,19 @@ The declared 357-origin diagnostic gave daily/weekly MAE of 871/1,035 MW.
 Annual revised data and an assumed next-day release make this retrospective,
 not a point-in-time accuracy claim. Energy LightGBM remains Day 8.
 
+Day 8 completed October 30, 2026: [CPU demand LightGBM](../apps/energy/README.md#cpu-lightgbm).
+One fixed 2018–2021 fit used only calendar and available past load. On matched
+2022–2023 validation, MAE was 645 MW versus 879/1,096 MW for daily/weekly baselines.
+This is a retrospective revised-data result; 2024–2025 remains unscored.
+No weather, GPU training, tuning or uncertainty calibration was added.
+
+Day 9 completed November 2, 2026: [demand ranges](../apps/energy/README.md#demand-ranges).
+Fixed quantile fits use 2018–2021; a widening correction uses only matured 2022
+labels. On inspected 2023 validation, coverage rose from 83.54% to 92.38%, with
+mean width increasing from 2,149 to 2,774 MW. Hour/season breakdowns expose uneven
+coverage. Point forecasts are unchanged; no live or simultaneous coverage guarantee.
+Weather remains excluded and 2024–2025 remains unscored.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |

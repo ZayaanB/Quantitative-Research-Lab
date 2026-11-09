@@ -7,7 +7,7 @@ the repository root, not from these folders.
 - [Greeks](greeks/README.md): European option sensitivities.
 - [Forecast](forecast/README.md): historical stock-price distributions.
 - [Prediction](prediction/README.md): optional statistical and ML experiments.
-- [Energy](energy/README.md): Ontario hourly-demand importer and seasonal baselines.
+- [Energy](energy/README.md): Ontario demand importer, baselines, CPU LightGBM and ranges.
 
 These folders group user-facing documentation; the independent energy Python
 module also lives here. They do not duplicate shared code or introduce separate

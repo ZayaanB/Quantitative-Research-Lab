@@ -1,13 +1,13 @@
 # Ontario demand forecasting
 
-Working: a separate IESO hourly-demand importer and two seasonal baselines.
-No energy ML model yet; LightGBM is [Day 8](../../docs/roadmap.md).
+Working: an IESO importer, seasonal baselines, CPU LightGBM and calibrated
+demand ranges. All remain retrospective research, not a live forecasting service.
 This predicts demand in MW, not electricity prices or stock prices.
 
 ## Run it
 
 From the repository root, with Python 3.9+ and the OS time-zone database.
-No extra Python packages or GPU are needed. Use new output paths for each run.
+The importer/baselines need no extra packages or GPU. Use new output paths.
 
 ```bash
 python3 apps/energy/ieso.py --year 2023 \
@@ -35,7 +35,7 @@ chronological order, from separate snapshots.
 Both models score identical hourly targets. Reports include MAE, RMSE, bias,
 WAPE (an error percentage), peak-magnitude error for each 24-hour window,
 runtime, predictions, source timestamps and file/code hashes. Peak error is
-not peak timing or Toronto calendar-day peak error. No uncertainty intervals yet.
+not peak timing or Toronto calendar-day peak error. Ranges have a separate runner below.
 
 ## Time and availability
 
@@ -58,6 +58,98 @@ again until it is. At an 08:00 origin, the daily baseline uses a two-day lag for
 Missing available sources fail rather than silently switching models or dates.
 The horizon is `[origin, origin + 24 hours)`; no realized horizon loads are used.
 
+## CPU LightGBM
+
+Download 2018–2022 into separate `ieso-2018`, ..., `ieso-2022` snapshots using
+the importer above; keep the existing `ieso-2023` snapshot. Then:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r apps/energy/requirements.txt
+.venv/bin/python apps/energy/boosted_demand.py --csv \
+  Notes-dont-commit/energy/ieso-2018/PUB_Demand_2018.csv \
+  Notes-dont-commit/energy/ieso-2019/PUB_Demand_2019.csv \
+  Notes-dont-commit/energy/ieso-2020/PUB_Demand_2020.csv \
+  Notes-dont-commit/energy/ieso-2021/PUB_Demand_2021.csv \
+  Notes-dont-commit/energy/ieso-2022/PUB_Demand_2022.csv \
+  Notes-dont-commit/energy/ieso-2023/PUB_Demand_2023.csv \
+  --retrospective --output Notes-dont-commit/energy/lightgbm-validation.json
+.venv/bin/python tests/test_energy_lightgbm.py
+```
+
+One fixed fit uses January 15, 2018–2021 origins and 19 calendar/available-load
+features. The first 14 days supply history; the last training window is purged
+because its labels cross the boundary. Training labels must also be available
+at the fit origin. Validation covers January 1, 2022–December 30, 2023 origins.
+No validation labels enter the fit, and there is no tuning or early stopping.
+
+The regressor pools all 24 lead-hour rows, using local/market calendar fields,
+available 24/48/168/336-hour seasonal loads and recent day/week summaries.
+It uses 200 rounds, learning rate 0.05, 31 leaves, depth 6 and L2 penalty 5,
+with one CPU thread. Missing inputs or invalid predictions fail without fallback.
+Reports preserve the model text/hash, dependency versions and source timestamps.
+`--train-start`, `--train-end`, `--start` and `--end` are configurable, but this
+development runner refuses evaluation beyond the declared 2023 boundary.
+
+October 30 comparison: 729 matched origins, 17,496 hourly targets; one fit on
+34,704 training rows. About 6.9 s including preparation/fit, excluding JSON output,
+on the same laptop (LightGBM 4.7.0, NumPy 2.5.3, CPU only).
+
+| Model | MAE (MW) | RMSE (MW) | WAPE | Window peak MAE (MW) |
+| --- | --- | --- | --- | --- |
+| Daily baseline | 879.34 | 1,180.86 | 5.61% | 802.84 |
+| Weekly baseline | 1,095.77 | 1,505.39 | 6.99% | 1,238.53 |
+| LightGBM | 645.18 | 869.34 | 4.11% | 676.29 |
+
+LightGBM reduced MAE by 26.6% versus the matched daily baseline. Its mean bias
+was −109.60 MW, so it tended to underpredict. This is inspected validation on
+revised data with assumed availability, not a live result or a significance test.
+The earlier Day 7 sample below uses different dates and is not the comparator.
+
+## Demand ranges
+
+Use the same six snapshots and optional requirements as above:
+
+```bash
+.venv/bin/python apps/energy/uncertainty.py --csv \
+  Notes-dont-commit/energy/ieso-2018/PUB_Demand_2018.csv \
+  Notes-dont-commit/energy/ieso-2019/PUB_Demand_2019.csv \
+  Notes-dont-commit/energy/ieso-2020/PUB_Demand_2020.csv \
+  Notes-dont-commit/energy/ieso-2021/PUB_Demand_2021.csv \
+  Notes-dont-commit/energy/ieso-2022/PUB_Demand_2022.csv \
+  Notes-dont-commit/energy/ieso-2023/PUB_Demand_2023.csv \
+  --retrospective --output Notes-dont-commit/energy/demand-ranges.json
+.venv/bin/python tests/test_energy_uncertainty.py
+```
+
+The 5th/95th quantile models use the same training years, features and settings.
+A widening-only [conformalized quantile regression](https://arxiv.org/abs/1905.03222)
+correction is fitted on 2022 and frozen before 2023 evaluation. Scores are
+`max(lower − actual, actual − upper, 0)`; take order statistic
+`ceil((n+1) × 0.9)`. Crossing bounds are sorted and counted. Lower bounds cannot
+be negative. The December 31 calibration window is purged because it crosses
+the boundary; every retained label must be available at the first scoring origin.
+The native fits use [LightGBM's quantile objective](https://lightgbm.readthedocs.io/en/stable/Parameters.html#objective).
+
+November 2 run: 8,736 calibration rows and 8,736 scoring rows; about 13 s on the
+same CPU. The correction widened each side by 312.61 MW. No quantiles crossed.
+
+| 2023 ranges | Coverage | Mean width (MW) | Mean endpoint pinball loss (MW) |
+| --- | --- | --- | --- |
+| Raw | 83.54% | 2,149.06 | 88.55 |
+| Calibrated | 92.38% | 2,774.29 | 86.09 |
+
+The report includes sample counts, coverage, width, pinball and interval score
+by target Toronto hour and meteorological season. Calibrated seasonal coverage
+was 91.7–93.0%; hourly coverage was 87.6–96.4%. Repeated DST hours remain distinct
+observations, grouped under the same local-hour label. Day 8 point predictions
+and baselines are unchanged on matched rows; this does not improve point accuracy.
+
+The 90% target is marginal, not a guarantee for each hour/season or all 24 hours
+together. Serial dependence, revised data and distribution changes prevent a
+standard exchangeability-based live coverage claim. This is inspected validation,
+not an untouched final test. Weather is still excluded.
+
 ## Data and next steps
 
 Source: [IESO annual demand reports](https://reports-public.ieso.ca/public/Demand/),
@@ -78,8 +170,8 @@ development laptop (i9-13900H, Python 3.12, Linux; excluding download/JSON).
 | Weekly | 1,034.76 | 1,468.39 | 6.61% |
 
 These are errors, not classification hit rates or `100 − error` accuracy.
-For Day 8, the proposed chronological split is training 2018–2021 and
-validation 2022–2023. Energy 2024–2025 remains an unscored candidate final period;
+The fixed split is training 2018–2021 and validation 2022–2023.
+Energy 2024–2025 remains an unscored candidate final period;
 freeze the complete procedure before using it. Revised-data results still need
 historical vintages or prospective collection before any operational claim.
 Weather is excluded until archived forecasts available at each origin exist.
