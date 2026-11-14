@@ -32,3 +32,6 @@ For the CPU energy model, install `apps/energy/requirements.txt` in `.venv` and
 run `.venv/bin/python tests/test_energy_lightgbm.py` to exercise native fits too.
 For demand ranges, also run `.venv/bin/python tests/test_energy_uncertainty.py`;
 it checks rank/metrics, boundary purges, unchanged point fits and future-label mutation.
+For the final workflow, run `.venv/bin/python tests/test_energy_final.py`.
+Synthetic fixtures test frozen inference, hash/missing-row guards, paired intervals
+and a retained used marker after failure; they do not score the real final period.

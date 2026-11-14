@@ -61,6 +61,13 @@ mean width increasing from 2,149 to 2,774 MW. Hour/season breakdowns expose unev
 coverage. Point forecasts are unchanged; no live or simultaneous coverage guarantee.
 Weather remains excluded and 2024–2025 remains unscored.
 
+Day 10 implementation added November 9, 2026: [guarded energy final evaluation](../apps/energy/README.md#final-evaluation).
+Saved models/correction, data and source/runtime are bound before a single-use
+attempt, with paired origin-day bootstrap intervals. The real run is pending:
+both 2025 IESO annual variants lack May 1 HE1, so the declared 2024–2025 period
+was not scored or silently shortened. Stock final evaluation also remains
+pending its original frozen exports or an explicit new-period decision.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |
