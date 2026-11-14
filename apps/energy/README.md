@@ -150,6 +150,43 @@ together. Serial dependence, revised data and distribution changes prevent a
 standard exchangeability-based live coverage claim. This is inspected validation,
 not an untouched final test. Weather is still excluded.
 
+## Final evaluation
+
+The runner freezes the saved Day 9 point/quantile models, widening correction,
+source/runtime, input hashes and the declared 2024–2025 origins. It does not
+refit or recalibrate. Earlier observed final-period loads may enter later lag
+features; future loads never enter their own forecasts.
+
+Status on November 9: **not scored**. Both official 2025 annual variants in
+the [IESO archive](https://reports-public.ieso.ca/public/Demand/) have 8,759 rows,
+missing May 1, hour ending 1 (00:00–01:00 fixed EST). The 2024 snapshot validated.
+No imputation or trimmed workload is allowed. A complete verified source or
+an explicitly approved new period is needed before running this comparison.
+
+Once the declared inputs are complete, use new paths:
+
+```bash
+.venv/bin/python apps/energy/final_evaluation.py freeze \
+  --validation Notes-dont-commit/energy/demand-ranges.json \
+  --csv Notes-dont-commit/energy/ieso-2023/PUB_Demand_2023.csv \
+  Notes-dont-commit/energy/ieso-2024/PUB_Demand_2024.csv \
+  Notes-dont-commit/energy/ieso-2025/PUB_Demand_2025.csv \
+  --output Notes-dont-commit/energy/frozen-final.json
+
+.venv/bin/python apps/energy/final_evaluation.py run \
+  --procedure Notes-dont-commit/energy/frozen-final.json \
+  --confirm-untouched-period --retrospective \
+  --output Notes-dont-commit/energy/final-results.json
+```
+
+Only confirm an untouched period if that is true. A `.used` marker is written
+before scoring and retained after failures; preserve it instead of retrying as
+though nothing was accessed. Copying/deleting files can bypass this local guard.
+The primary comparison is LightGBM MAE versus the daily baseline, with weekly
+results and range metrics retained. Paired circular-bootstrap intervals use
+1/7/28 origin-day blocks, 2,000 samples and seed 42; fewer than ten effective
+blocks gives no interval. These are sensitivity checks, not proof of a live edge.
+
 ## Data and next steps
 
 Source: [IESO annual demand reports](https://reports-public.ieso.ca/public/Demand/),

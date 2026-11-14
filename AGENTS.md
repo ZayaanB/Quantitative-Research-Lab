@@ -95,6 +95,9 @@ implementation and preserve established commands unless a migration is requested
 - Energy ranges target marginal 90% coverage with fixed 2018–2021 quantile fits,
   a frozen 2022 widening correction and inspected 2023 scoring. Preserve boundary
   purges and availability checks; do not claim conditional or simultaneous coverage.
+- Day 10 energy final evaluation is implemented but not scored: both official
+  2025 annual variants lack May 1 HE1. Do not fill it, trim the declared period,
+  or treat synthetic final tests as real results. Stock final exports remain missing.
 
 ## Safety and repository hygiene
 
@@ -144,6 +147,7 @@ For energy changes, also run `python3 tests/test_energy_baselines.py` (standard 
 For energy model changes, install `apps/energy/requirements.txt` in `.venv` and
 run `.venv/bin/python tests/test_energy_lightgbm.py`; default CTest may skip native fits.
 For energy range changes, also run `.venv/bin/python tests/test_energy_uncertainty.py`.
+For energy final changes, also run `.venv/bin/python tests/test_energy_final.py`.
 For documentation-only changes, check local links, commands and `git diff --check`.
 Report what actually ran, failures/skips and remaining limitations. No test suite
 can justify a claim that all bugs are impossible.
