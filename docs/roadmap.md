@@ -68,6 +68,14 @@ both 2025 IESO annual variants lack May 1 HE1, so the declared 2024–2025 perio
 was not scored or silently shortened. Stock final evaluation also remains
 pending its original frozen exports or an explicit new-period decision.
 
+Day 11 audit/handoff, November 14, 2026: hardened the final artifact loader
+against point-model overrides, malformed/non-finite JSON and missing optional
+dependencies. Removed an unused import and added native energy checks to Linux CI.
+Core/native checks, CLI samples and exact replay of 72 saved validation forecasts
+were verified locally on Linux. No model recipe changed and no final period was
+scored. Day 10's data/stock-export blockers remain unresolved; this is not a claim
+that the final evaluation or macOS verification is complete.
+
 | Day | Build | Completion check |
 | --- | --- | --- |
 | 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |

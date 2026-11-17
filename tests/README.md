@@ -35,3 +35,8 @@ it checks rank/metrics, boundary purges, unchanged point fits and future-label m
 For the final workflow, run `.venv/bin/python tests/test_energy_final.py`.
 Synthetic fixtures test frozen inference, hash/missing-row guards, paired intervals
 and a retained used marker after failure; they do not score the real final period.
+
+Linux CI is configured to run native classical/boosted stock and energy tests
+after installing their optional requirements. Core CTest runs on Linux/macOS;
+optional skips there do not count as native fits. Local Day 11 checks also covered
+the direction, calibration and CNN suites using their documented requirements.

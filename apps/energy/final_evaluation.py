@@ -1,11 +1,10 @@
 import argparse
 import csv
 from datetime import datetime
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 import json
 import math
 from pathlib import Path
-import sys
 import time
 
 import baselines
@@ -35,19 +34,35 @@ def unique_object(pairs):
     return result
 
 
+def finite_number(value):
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("non-finite JSON number in frozen artifact")
+    return number
+
+
 def read_json(path):
     raw = Path(path).read_bytes()
-    return json.loads(raw, object_pairs_hook=unique_object), digest(raw)
+    result = json.loads(raw, object_pairs_hook=unique_object, parse_float=finite_number, parse_constant=finite_number)
+    if not isinstance(result, dict):
+        raise ValueError("frozen artifact JSON must be an object")
+    return result, digest(raw)
 
 
 def runtime():
     info = provenance()
+    try:
+        dependencies = {name: version(name) for name in ("numpy", "lightgbm", "scipy")}
+    except PackageNotFoundError as error:
+        raise ValueError("install apps/energy/requirements.txt in .venv before using the final workflow") from error
     return {"source_hashes": {f"apps/energy/{name}": digest(Path(__file__).with_name(name).read_bytes()) for name in SOURCES},
-            "dependencies": {name: version(name) for name in ("numpy", "lightgbm", "scipy")},
+            "dependencies": dependencies,
             **{key: info[key] for key in ("python", "platform", "calendar_zone", "system_zonefile_sha256")}}
 
 
 def validation_artifacts(report):
+    if not isinstance(report, dict):
+        raise ValueError("validation report must be a JSON object")
     current = runtime()
     expected_sources = {key: value for key, value in current["source_hashes"].items() if not key.endswith("/final_evaluation.py")}
     if (type(report.get("schema_version")) is not int or report["schema_version"] != 1 or
@@ -74,11 +89,14 @@ def validation_artifacts(report):
     widening = calibration["widening_mw"]
     if type(widening) not in (int, float) or not math.isfinite(widening) or widening < 0:
         raise ValueError("invalid frozen calibration correction")
-    models = {"point": {"model_text": report["model_text"], "sha256": report["model_sha256"]},
-              **report["quantile_models"]}
-    if set(models) != {"point", "0.05", "0.95"}:
-        raise ValueError("require point, 0.05 and 0.95 models")
+    quantiles = report["quantile_models"]
+    if not isinstance(quantiles, dict) or set(quantiles) != {"0.05", "0.95"}:
+        raise ValueError("require exactly 0.05 and 0.95 quantile models; no extra entries")
+    models = {"point": {"model_text": report["model_text"], "sha256": report["model_sha256"]}, **quantiles}
     for model in models.values():
+        if (not isinstance(model, dict) or not isinstance(model.get("model_text"), str) or
+                not model["model_text"] or not isinstance(model.get("sha256"), str)):
+            raise ValueError("invalid frozen model text or hash")
         if digest(model["model_text"].encode()) != model["sha256"]:
             raise ValueError("model text/hash mismatch")
     return {"models": models, "widening_mw": widening, "calibration": calibration,
