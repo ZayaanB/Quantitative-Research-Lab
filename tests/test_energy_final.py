@@ -102,6 +102,32 @@ class FinalEnergyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate"):
             final.read_json(duplicate)
 
+    def test_quantile_bundle_cannot_override_the_point_model(self):
+        changed = copy.deepcopy(self.report)
+        changed["quantile_models"]["point"] = {"model_text": "replacement", "sha256": ieso.digest(b"replacement")}
+        with patch.object(final, "runtime", return_value=self.environment):
+            with self.assertRaisesRegex(ValueError, "quantile"):
+                final.validation_artifacts(changed)
+
+    def test_malformed_and_nonfinite_artifacts_fail_cleanly(self):
+        malformed = self.directory / "malformed.json"
+        for content in ('[]', '{"value": NaN}', '{"value": Infinity}', '{"value": 1e999}'):
+            malformed.write_text(content)
+            with self.subTest(content=content), self.assertRaises(ValueError):
+                final.read_json(malformed)
+        with self.assertRaises(ValueError):
+            final.validation_artifacts([])
+        changed = copy.deepcopy(self.report)
+        changed["quantile_models"]["0.05"]["model_text"] = 7
+        with patch.object(final, "runtime", return_value=self.environment):
+            with self.assertRaisesRegex(ValueError, "model"):
+                final.validation_artifacts(changed)
+
+    def test_missing_optional_dependencies_give_install_instructions(self):
+        with patch.object(final, "version", side_effect=final.PackageNotFoundError("lightgbm")):
+            with self.assertRaisesRegex(ValueError, "requirements.txt"):
+                final.runtime()
+
     def test_failed_evaluation_keeps_used_marker_and_refuses_retry(self):
         ieso.write_json(self.procedure, {"artifacts": {}})
         with patch.object(final, "verify", return_value={}), patch.object(final, "load_models", return_value={}), \

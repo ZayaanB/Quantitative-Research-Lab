@@ -33,10 +33,13 @@ jobs:
       - name: Test
         run: ctest --test-dir build --build-config Release --output-on-failure
 
-      - name: Test optional forecast models
+      - name: Test optional CPU forecast and energy models
         if: runner.os == 'Linux'
         run: |
           python3 -m venv .venv-forecast-tests
-          .venv-forecast-tests/bin/python -m pip install -r python/requirements-forecast.txt -r python/requirements-ml.txt
+          .venv-forecast-tests/bin/python -m pip install -r python/requirements-forecast.txt -r python/requirements-ml.txt -r apps/energy/requirements.txt
           .venv-forecast-tests/bin/python tests/test_classical_forecasts.py
           .venv-forecast-tests/bin/python tests/test_boosted_forecasts.py
+          .venv-forecast-tests/bin/python tests/test_energy_lightgbm.py
+          .venv-forecast-tests/bin/python tests/test_energy_uncertainty.py
+          .venv-forecast-tests/bin/python tests/test_energy_final.py

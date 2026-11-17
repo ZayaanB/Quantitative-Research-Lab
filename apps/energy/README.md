@@ -187,6 +187,12 @@ results and range metrics retained. Paired circular-bootstrap intervals use
 1/7/28 origin-day blocks, 2,000 samples and seed 42; fewer than ten effective
 blocks gives no interval. These are sensitivity checks, not proof of a live edge.
 
+The artifact loader accepts exactly the two declared quantile models, so the
+bundle cannot override the point model. Duplicate keys, non-finite numbers and
+malformed model fields are rejected. Missing optional packages produce install
+instructions rather than a traceback. Frozen source/runtime changes still require
+a new explicit freeze; the saved Day 9 validation recipe itself is unchanged.
+
 ## Data and next steps
 
 Source: [IESO annual demand reports](https://reports-public.ieso.ca/public/Demand/),
