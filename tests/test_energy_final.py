@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "apps" / "energy"))
 import boosted_demand as energy
 import final_evaluation as final
 import ieso
-from test_energy_baselines import report_bytes
+from energy_fixtures import report_bytes
 
 
 NATIVE = all(importlib.util.find_spec(name) is not None for name in ("numpy", "lightgbm", "scipy"))
@@ -44,7 +44,7 @@ class FinalEnergyTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
         self.paths = []
-        for year, days in ((2023, 365), (2024, 366), (2025, 365)):
+        for year, days in ((2023, 365), (2024, 366)):
             path = self.directory / f"PUB_Demand_{year}.csv"
             path.write_bytes(report_bytes(date(year, 1, 1), days))
             self.paths.append(path)
@@ -64,7 +64,7 @@ class FinalEnergyTests(unittest.TestCase):
             procedure = final.freeze(self.validation, self.paths)
             self.assertEqual(procedure["artifacts"]["models"], self.models)
             self.assertFalse(procedure["protocol"]["refit_or_recalibration"])
-            self.assertEqual(len(final.verify(procedure)), 26304)
+            self.assertEqual(len(final.verify(procedure)), 17544)
             for key in ("runtime", "protocol", "artifacts"):
                 changed = copy.deepcopy(procedure)
                 changed[key] = {}
@@ -86,6 +86,13 @@ class FinalEnergyTests(unittest.TestCase):
                 final.freeze(self.validation, self.paths)
         self.assertFalse(self.procedure.exists())
         self.assertFalse(self.procedure.with_name(self.procedure.name + ".used").exists())
+
+    def test_approved_scope_is_2024_only(self):
+        self.assertEqual(final.PROTOCOL["start_est"], "2024-01-01")
+        self.assertEqual(final.PROTOCOL["end_exclusive_est"], "2024-12-31")
+        with patch.object(final, "runtime", return_value=self.environment):
+            with self.assertRaisesRegex(ValueError, "approved 2024"):
+                final.freeze(self.validation, self.paths + [self.directory / "PUB_Demand_2025.csv"])
 
     def test_validation_and_confirmation_guards(self):
         with patch.object(final, "runtime", return_value=self.environment):
@@ -164,9 +171,10 @@ class FinalEnergyTests(unittest.TestCase):
         with patch.object(energy, "fit_model", side_effect=AssertionError("final must not refit")):
             report = final.run_final(self.procedure, self.output, confirmed=True, retrospective=True)
         self.assertEqual(report["phase"], "holdout")
-        self.assertEqual(report["counts"], {"origins": 730, "hourly_targets": 17520})
+        self.assertEqual(report["counts"], {"origins": 365, "hourly_targets": 8760})
         self.assertTrue(report["final_period_consumed"])
-        self.assertEqual(sum(group["calibrated"]["rows"] for group in report["breakdown"]["season"].values()), 17520)
+        self.assertEqual(sum(group["calibrated"]["rows"] for group in report["breakdown"]["season"].values()), 8760)
+        self.assertTrue(all(point["market_date"].startswith("2024-") for window in report["windows"] for point in window["points"]))
         with self.assertRaisesRegex(ValueError, "exists"):
             final.run_final(self.procedure, self.directory / "second.json", confirmed=True, retrospective=True)
 

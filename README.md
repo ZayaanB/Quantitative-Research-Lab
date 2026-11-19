@@ -1,78 +1,59 @@
 # Monte Carlo Options Engine
 
-C++20 option pricing and Greeks, with separate stock-prediction experiments
-and separate hourly-demand baselines.
-No execution or brokerage integration. Forecasts are research outputs, not
-demonstrated trading signals.
+C++20 option pricing and Greeks, with Python stock research and a separate
+Ontario electricity-demand forecasting tool. Everything runs locally on CPU;
+you supply market assumptions or historical data files.
 
-## Build and test
+## Project parts
 
-You need CMake 3.20+ and a C++20 compiler. Catch2 is downloaded at configure time
-if it is not installed. Linux and macOS are the initial targets.
+| Part | What it does | Guide |
+| --- | --- | --- |
+| Pricing and Greeks | Black-Scholes and Monte Carlo European call/put values, arithmetic Asian calls, and European Delta/Gamma/Vega | [CLI](docs/cli.md#pricing-and-greeks) |
+| Stock scenarios | Historical GBM price distributions and walk-forward baseline comparisons | [Forecast workflow](docs/forecast-workflow.md) |
+| Stock prediction | Regression and direction models, pooled training, calibration and experimental CNN | [Prediction README](apps/prediction/README.md) |
+| Energy forecasting | IESO hourly demand, seasonal baselines, CPU LightGBM and calibrated ranges | [Energy README](apps/energy/README.md) |
+
+Pricing uses risk-neutral assumptions; historical forecasts use a separate
+model and never automatically change pricing inputs. These are research tools
+without brokerage integration, execution or portfolio management. Evaluation
+compares errors, probabilities and ranges against baselines; see
+[current evidence and remaining work](docs/roadmap.md).
+
+## Build and run
+
+Use CMake 3.20+ and a C++20 compiler on Linux or macOS. CMake downloads Catch2
+if it is not installed. Run from the repository root:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build --output-on-failure
-```
-
-## Pick a tool
-
-All commands run from the repository root. Each folder has its own quick start.
-
-| Area | What it does | Status |
-| --- | --- | --- |
-| [Options engine](apps/options/README.md) | European/Asian pricing, sampling error and runtime | Implemented |
-| [Greek calculator](apps/greeks/README.md) | European Delta, Gamma and Vega | Implemented |
-| [Stock forecast](apps/forecast/README.md) | Historical GBM scenarios and walk-forward checks | Implemented |
-| [Stock prediction](apps/prediction/README.md) | Ridge, ensemble, ARIMA/ETS and LightGBM experiments | Experimental |
-| [Energy forecast](apps/energy/README.md) | Ontario demand baselines, LightGBM and ranges | Retrospective experiment |
-
-Forecast and prediction are two workflows, not different promises of accuracy.
-Neither has established a reliable stock-price edge over the latest-price
-baseline in the current multi-stock validation. Energy remains a separate experiment,
-not an assumed accuracy upgrade.
-
-```bash
-./build/mcprice price --type call --paths 1000000 --antithetic --greeks
-./build/mcprice greeks --type put --paths 1000000 --antithetic
+./build/mcprice price --type call --antithetic --greeks
 ./build/mcprice forecast --csv examples/sample_prices.csv --horizon-days 20
 ./build/mcprice --help
 ```
 
-The app folders are documentation entry points; the separate energy importer
-and runner also live in `apps/energy/`. Shared implementation stays in
-`include/mc/`, `src/` and `python/`; tests stay in `tests/`. Private datasets and
-experiment outputs belong in the ignored `Notes-dont-commit/` folder.
+The example history is synthetic. C++ pricing needs no Python packages;
+optional Python dependencies go in `.venv`. Component guides contain setup,
+commands and model details.
 
-Next steps: [Phase 2 daily roadmap](docs/roadmap.md).
-Contributor rules: [AGENTS.md](AGENTS.md). More guides: [documentation](docs/README.md),
-[Python tools](python/README.md) and [tests](tests/README.md).
+## Repository layout
 
-## Pricing assumptions
+| Location | Contents |
+| --- | --- |
+| `include/mc/` | Public C++ types and interfaces |
+| `src/` | Pricing, Greeks, models, statistics, forecasting and CLI implementation |
+| `python/` | Shared stock experiments, downloads, evaluation and plotting |
+| `apps/prediction/` | Stock-prediction setup README |
+| `apps/energy/` | Independent demand-forecasting code and README |
+| [docs/](docs/README.md) | CLI, calculations, models, architecture and research guides |
+| [tests/](tests/README.md) | C++/Python regression tests and verification commands |
+| `examples/` | Synthetic fixtures and manifest templates |
+| `benchmarks/` | Performance and numerical experiments |
+| [results/](results/README.md) | Benchmark CSVs, summaries and reproducibility metadata |
+| `Notes-dont-commit/` | Ignored private datasets, saved models and research outputs |
+| `.github/workflows/` | Continuous integration |
 
-Zero dividends, flat continuously compounded rates, constant volatility,
-frictionless markets, no transaction costs and risk-neutral GBM. Negative rates,
-zero volatility and zero maturity are supported. Asian monitoring excludes
-today and includes maturity. Antithetic paths must be even; each pair is one
-independent statistical observation.
-
-Price confidence intervals describe Monte Carlo sampling error, not model risk.
-Greeks also have bump error and currently have no confidence intervals. Vega is
-per one volatility percentage point. Identical full configurations reproduce on
-the same toolchain; `std::normal_distribution` differs across implementations.
-
-## Results and details
-
-Published [benchmarks](results/final/) describe one Intel Core i9-13900H laptop,
-not universal performance. See [architecture](docs/architecture.md),
-[mathematics](docs/mathematics.md) and the [forecast research](docs/forecast-model-research.md).
-
-To reproduce benchmark plots:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r python/requirements.txt
-./build/mc_final_benchmarks results/final
-.venv/bin/python python/plot_final_benchmarks.py
-```
+Start with [calculations explained](docs/calculations.md) for plain-language
+metrics, [models](docs/models.md) for algorithms, or [mathematics](docs/mathematics.md)
+for formulas. Contributor instructions are in [AGENTS.md](AGENTS.md).

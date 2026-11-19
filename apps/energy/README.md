@@ -91,9 +91,9 @@ Reports preserve the model text/hash, dependency versions and source timestamps.
 `--train-start`, `--train-end`, `--start` and `--end` are configurable, but this
 development runner refuses evaluation beyond the declared 2023 boundary.
 
-October 30 comparison: 729 matched origins, 17,496 hourly targets; one fit on
-34,704 training rows. About 6.9 s including preparation/fit, excluding JSON output,
-on the same laptop (LightGBM 4.7.0, NumPy 2.5.3, CPU only).
+Validation used 729 matched origins, 17,496 hourly targets and 34,704 training rows.
+Preparation/fit took about 6.9 s excluding JSON output (i9-13900H, LightGBM 4.7.0,
+NumPy 2.5.3, CPU only).
 
 | Model | MAE (MW) | RMSE (MW) | WAPE | Window peak MAE (MW) |
 | --- | --- | --- | --- | --- |
@@ -104,7 +104,7 @@ on the same laptop (LightGBM 4.7.0, NumPy 2.5.3, CPU only).
 LightGBM reduced MAE by 26.6% versus the matched daily baseline. Its mean bias
 was −109.60 MW, so it tended to underpredict. This is inspected validation on
 revised data with assumed availability, not a live result or a significance test.
-The earlier Day 7 sample below uses different dates and is not the comparator.
+The earlier seasonal-baseline sample below uses different dates and is not the comparator.
 
 ## Demand ranges
 
@@ -131,7 +131,7 @@ be negative. The December 31 calibration window is purged because it crosses
 the boundary; every retained label must be available at the first scoring origin.
 The native fits use [LightGBM's quantile objective](https://lightgbm.readthedocs.io/en/stable/Parameters.html#objective).
 
-November 2 run: 8,736 calibration rows and 8,736 scoring rows; about 13 s on the
+Ranges used 8,736 calibration rows and 8,736 scoring rows; about 13 s on the
 same CPU. The correction widened each side by 312.61 MW. No quantiles crossed.
 
 | 2023 ranges | Coverage | Mean width (MW) | Mean endpoint pinball loss (MW) |
@@ -142,7 +142,7 @@ same CPU. The correction widened each side by 312.61 MW. No quantiles crossed.
 The report includes sample counts, coverage, width, pinball and interval score
 by target Toronto hour and meteorological season. Calibrated seasonal coverage
 was 91.7–93.0%; hourly coverage was 87.6–96.4%. Repeated DST hours remain distinct
-observations, grouped under the same local-hour label. Day 8 point predictions
+observations, grouped under the same local-hour label. LightGBM point predictions
 and baselines are unchanged on matched rows; this does not improve point accuracy.
 
 The 90% target is marginal, not a guarantee for each hour/season or all 24 hours
@@ -152,31 +152,32 @@ not an untouched final test. Weather is still excluded.
 
 ## Final evaluation
 
-The runner freezes the saved Day 9 point/quantile models, widening correction,
-source/runtime, input hashes and the declared 2024–2025 origins. It does not
+The runner freezes the saved point/quantile models, widening correction,
+source/runtime, input hashes and the approved 2024-only origins. It does not
 refit or recalibrate. Earlier observed final-period loads may enter later lag
 features; future loads never enter their own forecasts.
 
-Status on November 9: **not scored**. Both official 2025 annual variants in
-the [IESO archive](https://reports-public.ieso.ca/public/Demand/) have 8,759 rows,
-missing May 1, hour ending 1 (00:00–01:00 fixed EST). The 2024 snapshot validated.
-No imputation or trimmed workload is allowed. A complete verified source or
-an explicitly approved new period is needed before running this comparison.
+The approved final scope is 2024 only. The original 2024–2025 comparison was never
+scored: both 2025 annual variants lack May 1 HE1.
+No missing values were filled. The approved grid has 365 origins at 08:00 EST,
+January 1–December 30, forecasting 8,760 intervals entirely within 2024.
+The first eight hours of January 1 and last sixteen of December 31 are outside
+that fixed origin grid; the complete leap-year source was validated.
 
-Once the declared inputs are complete, use new paths:
+The one-shot workflow is below. The actual run has already consumed 2024;
+reproducing it does not make that period fresh validation for another model.
 
 ```bash
 .venv/bin/python apps/energy/final_evaluation.py freeze \
   --validation Notes-dont-commit/energy/demand-ranges.json \
   --csv Notes-dont-commit/energy/ieso-2023/PUB_Demand_2023.csv \
   Notes-dont-commit/energy/ieso-2024/PUB_Demand_2024.csv \
-  Notes-dont-commit/energy/ieso-2025/PUB_Demand_2025.csv \
-  --output Notes-dont-commit/energy/frozen-final.json
+  --output Notes-dont-commit/energy/frozen-final-2024.json
 
 .venv/bin/python apps/energy/final_evaluation.py run \
-  --procedure Notes-dont-commit/energy/frozen-final.json \
+  --procedure Notes-dont-commit/energy/frozen-final-2024.json \
   --confirm-untouched-period --retrospective \
-  --output Notes-dont-commit/energy/final-results.json
+  --output Notes-dont-commit/energy/final-results-2024.json
 ```
 
 Only confirm an untouched period if that is true. A `.used` marker is written
@@ -187,11 +188,26 @@ results and range metrics retained. Paired circular-bootstrap intervals use
 1/7/28 origin-day blocks, 2,000 samples and seed 42; fewer than ten effective
 blocks gives no interval. These are sensitivity checks, not proof of a live edge.
 
-The artifact loader accepts exactly the two declared quantile models, so the
-bundle cannot override the point model. Duplicate keys, non-finite numbers and
-malformed model fields are rejected. Missing optional packages produce install
-instructions rather than a traceback. Frozen source/runtime changes still require
-a new explicit freeze; the saved Day 9 validation recipe itself is unchanged.
+Frozen inference took about 4.6 s excluding JSON output (i9-13900H, Linux kernel
+7.0.0-43, with the validation dependencies).
+
+| 2024 final model | MAE (MW) | RMSE (MW) | WAPE | Window peak MAE (MW) |
+| --- | --- | --- | --- | --- |
+| Daily baseline | 863.66 | 1,158.16 | 5.40% | 745.55 |
+| Weekly baseline | 1,228.43 | 1,706.44 | 7.68% | 1,385.88 |
+| Frozen LightGBM | 688.48 | 943.23 | 4.31% | 731.94 |
+
+MAE was 20.3% below the daily baseline; peak error improved only about 1.8%.
+Mean bias was −223.51 MW. The paired daily-baseline MAE reduction was 175.17 MW;
+95% intervals for 1/7/28-day blocks were [122.04,230.47], [116.65,230.10] and
+[123.82,226.45] MW. This is evidence for this retrospective comparison, not a
+universal or live-performance claim, and it is not a stock-price result.
+Raw/calibrated range coverage was 83.24%/91.77%; calibrated mean width was
+2,882.36 MW and mean endpoint pinball loss 92.89 MW. The reports, models, input
+hashes and `.used` marker remain in the ignored energy folder.
+
+The artifact loader rejects unexpected model fields, duplicate keys and
+non-finite values. Frozen source/runtime changes require a new explicit freeze.
 
 ## Data and next steps
 
@@ -203,8 +219,8 @@ and existing snapshots/reports are never overwritten. Raw data stays ignored.
 Review [IESO's terms](https://www.ieso.ca/Terms-of-Use) before reuse or redistribution.
 This information is subject to the Terms of Use set out in the IESO's website (www.ieso.ca).
 
-The October 29, 2026 diagnostic used January 8–December 30, 2023 origins,
-fixed before scoring: 357 origins, 8,568 hourly targets, about 0.29 s on the
+The standalone baseline diagnostic used January 8–December 30, 2023 origins:
+357 origins, 8,568 hourly targets, about 0.29 s on the
 development laptop (i9-13900H, Python 3.12, Linux; excluding download/JSON).
 
 | Baseline | MAE (MW) | RMSE (MW) | WAPE |
@@ -214,8 +230,9 @@ development laptop (i9-13900H, Python 3.12, Linux; excluding download/JSON).
 
 These are errors, not classification hit rates or `100 − error` accuracy.
 The fixed split is training 2018–2021 and validation 2022–2023.
-Energy 2024–2025 remains an unscored candidate final period;
-freeze the complete procedure before using it. Revised-data results still need
+Energy 2024 was consumed by the approved final comparison; 2025 remains unscored
+and incomplete. Future changes need a newly frozen evaluation, not claims based
+on repeatedly testing 2024. Revised-data results still need
 historical vintages or prospective collection before any operational claim.
 Weather is excluded until archived forecasts available at each origin exist.
 Stock and option-pricing inputs are unchanged.

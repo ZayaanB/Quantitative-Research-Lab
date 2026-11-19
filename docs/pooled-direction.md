@@ -52,11 +52,10 @@ For an opt-in fixed search with past-only calibration, see the
 
 ## Broader inputs
 
-For Day 4 we fixed JPM/JNJ/XOM/PG/WMT/CAT/KO before scoring, alongside the saved
-AAPL/MSFT/GOOGL inputs. All seven downloads succeeded for 2010–2023. Their hashes
-and retrieval metadata are kept in a new ignored snapshot; old files were not
-overwritten. The original SPY/QQQ/XLK context snapshot was reused, and 2024 onward
-was not scored. Freeze your own list and hashes before comparing modes.
+The pooled experiment used JPM/JNJ/XOM/PG/WMT/CAT/KO alongside AAPL/MSFT/GOOGL,
+with 2010–2023 history and the original SPY/QQQ/XLK context. Hashes and retrieval
+metadata stay in the ignored snapshot; 2024 onward was not scored. Freeze your
+own list and hashes before comparing modes.
 
 This is a small present-day survivor sample, not a historical index universe or
 a point-in-time dataset. Earlier validation labels can enter later yearly fits
@@ -64,7 +63,7 @@ only after they mature. XLK is still a research proxy, not a sector assignment
 for every stock. A broader sample is a new experiment, not directly comparable
 with a three-stock headline percentage.
 
-## October 21 validation
+## Validation results
 
 2018–2023, all ten stocks, identical inputs and grids in both modes:
 
@@ -78,5 +77,4 @@ Pooled logistic hit rates were 49.4%, 51.3% and 48.4%, respectively. Both pooled
 models had worse Brier scores than historical up frequency at every horizon.
 No stock/horizon group showed an accuracy win over always-up across all tested
 bootstrap blocks. These descriptive results do not demonstrate an edge.
-The default per-stock mode exactly reproduced the saved Day 3 results on the
-original stocks. Both new reports and all data remain in the ignored snapshot.
+Reports and data remain in the ignored snapshot.

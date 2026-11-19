@@ -18,7 +18,7 @@ import baselines
 import boosted_demand as energy
 import ieso
 import uncertainty as ranges
-from test_energy_baselines import report_bytes
+from energy_fixtures import report_bytes
 
 
 NATIVE = all(importlib.util.find_spec(name) is not None for name in ("numpy", "lightgbm"))

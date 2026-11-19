@@ -53,7 +53,6 @@ class MonteCarloEstimate:
 
 
 def analytical_prices(inputs: Inputs) -> PricePair:
-    """Calculate European prices with SciPy's normal CDF."""
     inputs.validate()
     if inputs.maturity == 0.0:
         return PricePair(
@@ -82,7 +81,6 @@ def analytical_prices(inputs: Inputs) -> PricePair:
 
 
 def monte_carlo_prices(inputs: Inputs, paths: int, seed: int) -> MonteCarloEstimate:
-    """Estimate call and put prices from shared NumPy-generated terminal prices."""
     inputs.validate()
     if paths < 2:
         raise ValueError("Python validation requires at least two paths")

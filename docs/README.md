@@ -1,13 +1,19 @@
 # Documentation
 
-Start with the [tool guides](../apps/README.md) for commands or the
-[Phase 2 roadmap](roadmap.md) for the next milestones.
+Start with the [project overview](../README.md), then choose a guide:
 
-## Methods
+| Guide | Covers |
+| --- | --- |
+| [Calculations explained](calculations.md) | Instruments, inputs, Greeks, pricing statistics, forecast metrics and how to interpret them |
+| [CLI](cli.md) | Commands, flags, defaults, inputs and outputs |
+| [Models](models.md) | Pricing models, stock scenarios, prediction experiments and energy models |
+| [Research status and next steps](roadmap.md) | Implemented work, current evidence and proposed experiments |
 
-- [Architecture](architecture.md) and [pricing mathematics](mathematics.md).
-- [Research and algorithm priorities](forecast-model-research.md).
-- [Ontario hourly-demand importer and seasonal baselines](../apps/energy/README.md).
+## Technical methods
+
+- [Architecture](architecture.md) and [mathematics](mathematics.md).
+- [Forecast research](forecast-model-research.md).
+- [Ontario demand data, commands and results](../apps/energy/README.md).
 
 ## Stock workflows
 
@@ -18,12 +24,8 @@ Start with the [tool guides](../apps/README.md) for commands or the
 - [Logistic and LightGBM direction classifiers](direction-forecast.md).
 - [Pooled cross-stock training](pooled-direction.md).
 - [Past-only model selection and calibration](calibrated-direction.md).
-- [Optional CPU CNN challenger](neural-direction.md).
-- [Ridge](ridge-forecast.md), [ensemble](ensemble-forecast.md),
-  [ARIMA/ETS](classical-forecast.md) and [LightGBM](boosted-forecast.md).
-- [Empirical forecast ranges](residual-forecast.md).
-- [Freeze a procedure and evaluate once](final-forecast.md).
+- [Optional CPU CNN](neural-direction.md).
+- [Stock price models and empirical ranges](models.md#running-price-experiments).
+- [Frozen final evaluation](final-forecast.md).
 
-Historical milestone numbers in older guides describe when features were added;
-they do not renumber the Phase 2 plan. Private datasets and experiment outputs
-stay in `Notes-dont-commit/`, not this documentation folder.
+Private datasets and experiment outputs stay in `Notes-dont-commit/`.

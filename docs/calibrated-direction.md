@@ -60,9 +60,9 @@ ranking. Correlated stocks and repeated experiments limit the evidence; this is
 still inspected validation, not a fresh test or trading edge. Settings are not
 retuned after outcomes, and 2024 onward remains reserved by the manifest.
 
-## October 21 validation
+## Validation results
 
-Same ten-stock snapshot and 2018–2023 outer grids as Day 4:
+Ten-stock sample, 2018–2023, on the pooled-training comparison's outer grids:
 
 | Horizon | Raw Brier | Adjusted Brier | Adjusted hit rate | Always-up |
 | --- | --- | --- | --- | --- |
@@ -72,6 +72,6 @@ Same ten-stock snapshot and 2018–2023 outer grids as Day 4:
 
 Historical up frequency won 16/18 outer selections; logistic C=0.1 and LightGBM
 L2=10 won one each. This does not establish a model edge. Daily reliability-bin
-error rose from 0.00254 to 0.00469 despite the lower Brier score. Existing modes
-exactly reproduced Day 4, and full candidate/OOF evidence stays in the ignored
-snapshot. Lower probability loss is not proof of useful price prediction.
+error rose from 0.00254 to 0.00469 despite the lower Brier score. Full candidate/OOF
+evidence stays in the ignored snapshot. Lower probability loss is not proof of
+useful price prediction.

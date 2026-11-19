@@ -26,7 +26,7 @@ Stock CSVs need `Open`, `High`, `Low`, `Close`, `Volume` and the price column
 declared in metadata. Context CSVs only need dates and their selected price.
 All stock sessions must match context sessions within the stock's date range.
 Missing or extra sessions stop the export; nothing is filled or intersected.
-Earlier context history is allowed. The [Day 1 checks](matched-forecast.md)
+Earlier context history is allowed. The [matched-data checks](matched-forecast.md)
 still apply; invalid inputs block export and save diagnostics.
 
 | Features | Definition at origin i |

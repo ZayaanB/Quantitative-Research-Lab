@@ -1,118 +1,34 @@
-# Phase 2 roadmap
+# Research status and next steps
 
-Days are logical milestones, not guaranteed calendar days or exactly one commit.
-Each should leave a buildable, tested project. Start at Day 1 when requested;
-this plan does not mean the future features are already implemented.
+## Current evidence
 
-## Starting point
+Stock validation has not established a useful edge over latest-price, always-up
+or historical-frequency baselines. Pooled training and the CNN lost to the
+relevant baselines; probability calibration improved Brier scores without
+establishing better directional predictions. See the
+[model guides](models.md) and linked validation tables.
 
-Working: option pricing, European Greeks CLI, stock GBM, walk-forward evaluation,
-ridge/ensemble, ARIMA/ETS, LightGBM regression and a validated history downloader.
-Energy has an hourly-demand importer and seasonal baselines. One optional CPU CNN is available
-as a fixed validation experiment, not an enabled forecast model.
+Stock 2018–2023 is inspected validation. Downloaded rows from 2024 onward are
+only candidate final data; check prior use before freezing. The original stock
+final exports/procedure remain missing. See the [final workflow](final-forecast.md).
 
-The October 17 download contains AAPL/MSFT/GOOGL and SPY/QQQ/XLK daily OHLCV.
-The fixed 2018–2023 comparison found no useful stock edge. Keep those outcomes;
-do not tune a model until that same diagnostic looks good.
+Energy uses fixed 2018–2021 models, a 2022 range correction and inspected
+2023 validation. The approved 2024-only final comparison reused saved artifacts:
+MAE improved against the daily baseline, with calibrated coverage near its
+90% target. **2024 is consumed.** The 2025 source lacks May 1 HE1 and remains
+unscored. See the [results and assumptions](../apps/energy/README.md#final-evaluation).
 
-## Daily milestones
+## Next experiments
 
-Day 1 completed October 19, 2026: [matched comparison and data checks](matched-forecast.md).
-Existing model predictions and the reserved final period were preserved.
+Predeclare each procedure and reserve fresh final data.
 
-Day 2 completed October 20, 2026: [past-only stock features](stock-features.md).
-OHLCV and SPY/QQQ/XLK features are ready; no new model was fitted or scored.
+1. Validate reporting vintages and archived weather availability; test holiday features.
+2. Compare past-only rolling refits and seasonal-residual targets; recalibrate changes.
+3. Test an additive/spline control and a fixed blend before increasing complexity.
+4. Evaluate delayed-label adaptive ranges using coverage, width and pinball loss.
 
-Day 3 completed October 20, 2026: [direction classifiers](direction-forecast.md).
-Fixed yearly logistic/LightGBM fits use matched dates and past-only labels;
-existing price models and the reserved final period are unchanged.
-Neither classifier beat always-up in the three-stock validation aggregates.
+Rationale: [energy research priorities](forecast-model-research.md#energy-research-priorities).
 
-Day 4 completed October 21, 2026: [pooled cross-stock training](pooled-direction.md).
-Expanded the predeclared sample to ten stocks and compared both modes on matched
-dates. Pooling did not beat always-up overall; per-stock training stays default.
-
-Day 5 completed October 21, 2026: [past-only selection and calibration](calibrated-direction.md).
-The fixed search chose the historical-frequency baseline in 16/18 outer folds.
-Brier scores improved after adjustment, but direction still trailed always-up.
-Both existing modes are unchanged, and the reserved final period stays unscored.
-
-Day 6 completed October 26, 2026: [small CPU CNN](neural-direction.md).
-Its ten-stock validation hit rates and Brier scores lost to the relevant baselines.
-Keep the reproducibility experiment only; no model promotion or neural expansion.
-Existing defaults and the reserved period are unchanged.
-
-Day 7 completed October 29, 2026: [Ontario demand baselines](../apps/energy/README.md).
-Imported a complete 2023 IESO snapshot and tested fixed EST, DST and availability.
-The declared 357-origin diagnostic gave daily/weekly MAE of 871/1,035 MW.
-Annual revised data and an assumed next-day release make this retrospective,
-not a point-in-time accuracy claim. Energy LightGBM remains Day 8.
-
-Day 8 completed October 30, 2026: [CPU demand LightGBM](../apps/energy/README.md#cpu-lightgbm).
-One fixed 2018–2021 fit used only calendar and available past load. On matched
-2022–2023 validation, MAE was 645 MW versus 879/1,096 MW for daily/weekly baselines.
-This is a retrospective revised-data result; 2024–2025 remains unscored.
-No weather, GPU training, tuning or uncertainty calibration was added.
-
-Day 9 completed November 2, 2026: [demand ranges](../apps/energy/README.md#demand-ranges).
-Fixed quantile fits use 2018–2021; a widening correction uses only matured 2022
-labels. On inspected 2023 validation, coverage rose from 83.54% to 92.38%, with
-mean width increasing from 2,149 to 2,774 MW. Hour/season breakdowns expose uneven
-coverage. Point forecasts are unchanged; no live or simultaneous coverage guarantee.
-Weather remains excluded and 2024–2025 remains unscored.
-
-Day 10 implementation added November 9, 2026: [guarded energy final evaluation](../apps/energy/README.md#final-evaluation).
-Saved models/correction, data and source/runtime are bound before a single-use
-attempt, with paired origin-day bootstrap intervals. The real run is pending:
-both 2025 IESO annual variants lack May 1 HE1, so the declared 2024–2025 period
-was not scored or silently shortened. Stock final evaluation also remains
-pending its original frozen exports or an explicit new-period decision.
-
-Day 11 audit/handoff, November 14, 2026: hardened the final artifact loader
-against point-model overrides, malformed/non-finite JSON and missing optional
-dependencies. Removed an unused import and added native energy checks to Linux CI.
-Core/native checks, CLI samples and exact replay of 72 saved validation forecasts
-were verified locally on Linux. No model recipe changed and no final period was
-scored. Day 10's data/stock-export blockers remain unresolved; this is not a claim
-that the final evaluation or macOS verification is complete.
-
-| Day | Build | Completion check |
-| --- | --- | --- |
-| 1 | Reusable matched-date comparison and data-quality checks | All models use identical origin/target rows; report bad sessions and hash inputs. Preserve the current baseline results. |
-| 2 | Stock feature pipeline | Add observed OHLC ranges, volume changes, SPY/QQQ/XLK returns and volatility. Future-data mutation tests leave earlier features unchanged. |
-| 3 | Direction models | Add regularized logistic regression and LightGBM classification, separate from return regression. Compare with always-up, balanced accuracy and Brier/log loss. |
-| 4 | Pooled stock training | Share training across available assets and expand the universe if suitable data is available. Split all assets by date; purge labels across boundaries and disclose survivor bias. |
-| 5 | Controlled selection and calibration | Use a small predeclared search inside chronological development folds. Fit calibration only on past out-of-fold predictions; report accuracy/error tradeoffs and losing models. |
-| 6 | One optional neural challenger | Benchmark a small normalized 1D CNN, or LSTM if justified, on the same folds. Measure memory/runtime; retain it only if it adds evidence. No foundation-model training. |
-| 7 | Energy data and baselines | Build a separate Ontario hourly-demand importer, availability rules and previous-day/week forecasts. Test timestamps, units, missing hours and DST. |
-| 8 | Energy LightGBM | Predict the next 24 hours using calendar and available lagged demand. Score hourly MAE/RMSE and daily peak error against both baselines. |
-| 9 | Energy uncertainty and robust evaluation | Add past-only quantile calibration; report coverage, width and pinball loss by season/hour. Add weather only if archived forecasts are available. |
-| 10 | Frozen final evaluation | Lock each domain's procedure and compare with baselines on its own untouched period. Report paired uncertainty and failures; no test-driven retuning. |
-| 11 | Audit and handoff | Run full/native tests and representative samples, check unused code and dependency boundaries, finish concise run guides and record reproducible results. |
-
-The stock and energy tracks remain independent. Days 7–9 do not mean energy is
-proven better; Day 6 is a bounded experiment, not a required model upgrade.
-If a step needs unavailable data or new authority, report that rather than
-fabricating inputs or quietly expanding scope.
-
-## Evaluation rules
-
-Keep three questions separate: numerical option-pricing correctness, stock
-price/direction skill, and energy-demand forecast quality. Never compare their
-percentages as though they were the same metric.
-
-The downloaded stock rows from 2024 onward are a candidate final period, not a
-completed final test. Check that no prior experiment used them before freezing
-the procedure. Foundation-model pretraining can invalidate that candidate;
-use genuinely post-checkpoint data when needed. Energy needs its own split.
-After a final period is scored, it stays consumed even if a model loses.
-
-No milestone promises 60%, 70% or any other accuracy. A challenger that loses to
-a baseline is a valid research outcome, not a reason to hide the result.
-
-## Organization
-
-See the [tool guides](../apps/README.md), [methods index](README.md) and
-[development rules](../AGENTS.md). Existing source paths and `mcprice` commands
-remain stable. New energy code belongs in its own module; shared code stays
-shared. A project/repository rename is a separate user choice.
+After a benchmark or large test, replace the relevant result table and environment
+details; revise this status when conclusions or blockers change. Keep raw artifacts
+separate and avoid appending dated progress entries.

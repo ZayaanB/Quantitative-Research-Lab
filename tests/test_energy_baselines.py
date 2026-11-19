@@ -1,6 +1,5 @@
 import csv
-from datetime import date, timedelta
-import io
+from datetime import date
 import json
 import math
 from pathlib import Path
@@ -12,23 +11,13 @@ from unittest.mock import Mock, patch
 from urllib.request import Request
 
 
+from energy_fixtures import report_bytes
+
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "apps" / "energy"))
 import baselines
 import ieso
-
-
-def report_bytes(start=date(2023, 1, 1), days=30, constant=None):
-    stream = io.StringIO(newline="")
-    writer = csv.writer(stream, lineterminator="\n")
-    writer.writerow(["\\\\Hourly Demand Report", "", "", ""])
-    writer.writerow(ieso.HEADER)
-    for index in range(days):
-        day = start + timedelta(days=index)
-        for hour in range(1, 25):
-            load = constant if constant is not None else 10000 + index * 10 + hour * 50 + day.weekday() * 100
-            writer.writerow([day.isoformat(), hour, load + 1000, load])
-    return stream.getvalue().encode()
 
 
 class EnergyTests(unittest.TestCase):

@@ -7,7 +7,21 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+
 jobs:
+  repository-hygiene:
+    name: Documentation and generated files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Check local documentation links and tracked generated files
+        run: python3 tests/check_repository.py
+
   build-and-test:
     name: ${{ matrix.os }} / C++20
     runs-on: ${{ matrix.os }}

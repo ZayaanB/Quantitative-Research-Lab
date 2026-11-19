@@ -1,5 +1,4 @@
 import csv
-from datetime import date, timedelta
 import importlib.util
 import json
 import math
@@ -9,6 +8,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+
+from stock_fixtures import weekday_dates
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,12 +28,7 @@ class DirectionTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
-        self.dates = []
-        day = date(2020, 1, 1)
-        while len(self.dates) < 340:
-            if day.weekday() < 5:
-                self.dates.append(day.isoformat())
-            day += timedelta(days=1)
+        self.dates = weekday_dates(340)
         settings = {"schema_version": 1, "lookback_days": 80, "validation_start": self.dates[120],
                     "holdout_start": self.dates[320], "test_end": self.dates[-1],
                     "bootstrap": {"samples": 100, "seed": 42, "block_sizes": [1, 2, 4]}}

@@ -25,9 +25,8 @@ For Linux, use the CPU wheel index to avoid downloading CUDA libraries:
 
 On macOS, install `requirements-neural.txt` without the Linux CPU index. The
 runner still uses CPU explicitly. Use a Python version supported by your
-PyTorch wheel; the measured run uses Python 3.12. See the
-[official installer](https://pytorch.org/get-started/locally/). Your separate
-RTX 5060 Ti is not needed or benchmarked here. No pretrained checkpoints are loaded.
+PyTorch wheel; see the [official installer](https://pytorch.org/get-started/locally/).
+No pretrained checkpoints are loaded.
 
 ## Fixed experiment
 
@@ -60,9 +59,9 @@ stocks are dependent; probabilities are uncalibrated. Same-platform repeatabilit
 is tested, but [PyTorch does not guarantee identical results across releases/platforms](https://docs.pytorch.org/docs/stable/notes/randomness.html).
 No result automatically replaces a baseline or justifies scaling neural training.
 
-## October 26 validation
+## Validation results
 
-Same ten-stock snapshot, 2018–2023 folds and dates as Day 4:
+Ten-stock sample, 2018–2023, on the pooled-training comparison's folds and dates:
 
 | Horizon | Samples | CNN hit rate | Always-up | CNN Brier | Past-frequency Brier |
 | --- | --- | --- | --- | --- | --- |

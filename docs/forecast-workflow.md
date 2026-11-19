@@ -1,42 +1,14 @@
-# Run a stock forecast yourself
+# Stock forecast workflow
 
-Run commands from the repository root. The CLI reads a local history file; it
-does not fetch tickers or live quotes. Forecasting currently uses historical
-GBM. Historical-bootstrap forecasts have not been implemented yet.
+The C++ CLI reads daily price files and fits historical GBM. Build using the
+[root instructions](../README.md#build-and-run); run commands from the repository
+root. For models beyond GBM, use the [prediction setup](../apps/prediction/README.md).
 
-## 1. Build and check the installation
+## Prepare daily prices
 
-Use CMake 3.20+ and a C++20 compiler with support for
-`std::jthread`, calendar dates, and floating-point `std::from_chars`.
-The first configure needs internet access to download Catch2 unless installed.
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 4
-ctest --test-dir build --output-on-failure
-./build/mcprice --help
-```
-
-Try the bundled synthetic history before using real data:
-
-```bash
-./build/mcprice forecast --csv examples/sample_prices.csv --horizon-days 20
-./build/mcprice backtest --csv examples/sample_prices.csv \
-  --lookback-days 10 --horizon-days 3 --step-days 3
-```
-
-## 2. Prepare daily stock history
-
-Export daily historical prices from a data provider you have access to. For
-Apple, save the export as `Notes-dont-commit/AAPL.csv`. That directory is
-ignored by Git. Use the same workflow for any other ticker.
-
-An optional [download command](../apps/prediction/README.md) fetches validated
-OHLCV histories and metadata into a new private snapshot folder. It requires
-`python/requirements-data.txt`, respects provider failures and does not overwrite
-existing files. The current models still use the selected price column only.
-
-The file must have one header row and one row per trading session, oldest first:
+Save provider exports under `Notes-dont-commit/`. The optional
+[downloader](../apps/prediction/README.md) creates validated OHLCV snapshots and
+metadata. The GBM command uses only the selected price column.
 
 ```csv
 Date,Adj Close
@@ -45,106 +17,48 @@ Date,Adj Close
 2024-01-04,100.50
 ```
 
-These numbers only illustrate the format. Use actual exported prices for a
-stock experiment. Extra columns are allowed; each row must match the header's
-column count. Dates must be unique, valid `YYYY-MM-DD` dates. Prices must be
-positive finite numbers without currency symbols or thousands separators.
+These are format examples, not market observations. Rows must be oldest first,
+with unique valid ISO dates and positive finite prices. Extra columns are allowed;
+row lengths must match the header. Currency symbols and thousands separators
+are invalid.
 
-Prefer prices consistently adjusted for splits and dividends. Do not rename an
-unadjusted column to imply adjustment. A `Close` column works with
-`--price-column Close`, but corporate actions can distort its returns. Adjusted
-price forecasts describe the provider's adjusted-price series, which may differ
-from future quoted dollar prices after corporate actions.
+Use consistent adjustment semantics. Unadjusted `Close` works with
+`--price-column Close`, but corporate actions can distort returns. Adjusted
+forecasts describe the provider's series, which may differ from quoted prices.
+Calendar-gap/weekend checks are heuristic; no rows are filled or dropped.
 
-Use daily sessions with no accidental missing rows. Both commands report the
-largest calendar gap and warn about gaps over four days or weekend rows.
-These are hints, not an exchange calendar: holidays can trigger warnings and
-shorter missing-session gaps can go unnoticed. Rows are never filled or dropped.
-Monthly or intraday history does not match the daily horizon convention.
+Forecasting needs three prices; backtesting needs at least
+`lookback + horizon + 1`, which gives only one forecast. Supply more history
+for evaluation. N training returns require N+1 prices.
 
-A forecast needs at least three prices. A backtest needs at least
-`lookback + horizon + 1` prices; that minimum gives only one forecast. Use much
-more history for evaluation. Record the provider, retrieval date, adjustment
-convention, and file checksum with your results:
+## Record provenance
 
-```bash
-sha256sum Notes-dont-commit/AAPL.csv
-```
-
-On macOS use `shasum -a 256` instead.
-
-Keep a companion `AAPL.meta` file with these seven keys, one per line:
+A companion `AAPL.meta` uses these seven keys:
 
 ```text
 provider=Your data provider
 symbol=AAPL
-adjustment=Describe the provider's split and dividend treatment
+adjustment=Describe split and dividend treatment
 retrieved_on=2026-10-07
 source_url=https://your-provider.example/history
 price_column=Adj Close
 frequency=daily
 ```
 
-Replace the example values with your actual export details. Pass the file with
-`--metadata Notes-dont-commit/AAPL.meta` to either command. Unknown, duplicate,
-missing keys, a mismatched price column, non-daily frequency, or a retrieval date
-before the final price date are rejected. Values are declarations, not verified
-provider facts. Without metadata, output marks provenance as unspecified.
-Retain the original CSV, metadata, checksum, command, and toolchain together.
+Replace all values with export details. Retrieval must not precede the latest
+price date. Unknown, duplicate or missing keys, mismatched price columns and
+non-daily frequency are rejected. Metadata declares provenance; it does not
+verify the provider's adjustment or historical publication timing.
 
-## 3. Generate the forecast
+Keep the CSV/metadata hashes, source revision and toolchain version with
+experiment artifacts. Use `sha256sum`, or `shasum -a 256` on macOS.
 
-Start with the defaults: historical drift and sample volatility.
-
-```bash
-./build/mcprice forecast --csv Notes-dont-commit/AAPL.csv --horizon-days 20
-```
-
-Try recent-weighted volatility and a 50% reduction in estimated GBM drift:
-
-```bash
-./build/mcprice forecast --csv Notes-dont-commit/AAPL.csv \
-  --horizon-days 20 --volatility-model ewma --ewma-decay 0.94 \
-  --drift-model shrinkage --drift-shrinkage 0.5
-```
-
-By default, `forecast` fits every row. Use `--lookback-days 252` to fit the latest
-252 returns from 253 prices, matching a backtest's 252-return rolling window:
+## Forecast and backtest
 
 ```bash
 ./build/mcprice forecast --csv Notes-dont-commit/AAPL.csv \
   --metadata Notes-dont-commit/AAPL.meta --lookback-days 252 --horizon-days 20
-```
 
-Insufficient history is rejected rather than silently shortening the window.
-Output shows the selected training dates and observation counts. A 20-day
-horizon means 20 trading sessions after the final row, even when it is years old.
-
-The expected price is the model's mean; the median is its middle outcome. The
-95% model interval describes future-price uncertainty under fitted assumptions.
-It excludes parameter uncertainty, news, jumps, and changes in market behavior.
-The probability-above-current field refers to a strict price increase.
-For a flat deterministic forecast, that probability is zero.
-
-Bootstrap intervals are unavailable with fewer than ten effective blocks.
-Wilson directional intervals assume independent trials; shared training windows
-and overlapping targets can violate that assumption. Treat them as descriptive,
-not evidence of a trading edge.
-
-The forecast command prints the 95% interval. Backtests additionally score 80%
-and 90% intervals. Annualized drift and volatility use 252 sessions by default;
-values printed as percentages differ from decimal inputs to the pricing CLI.
-
-## 4. Test historical accuracy
-
-For repeatable multi-stock testing at 1/5/20-session horizons, use the
-[frozen benchmark runner](forecast-benchmark.md). It separates validation from
-explicit holdout scoring and records input hashes.
-
-Use a rolling year of returns to predict 20 sessions ahead, advancing by 20
-sessions so target return periods do not overlap:
-
-```bash
 ./build/mcprice backtest --csv Notes-dont-commit/AAPL.csv \
   --lookback-days 252 --horizon-days 20 --step-days 20 \
   --volatility-model ewma --ewma-decay 0.94 \
@@ -152,75 +66,25 @@ sessions so target return periods do not overlap:
   --bootstrap-samples 10000 --bootstrap-seed 42
 ```
 
-Compare horizons by changing both `--horizon-days` and `--step-days` to 1, 5,
-and 20. Compare drift modes with `historical`, `zero`, and `shrinkage`.
-Pass `--drift-shrinkage` only with shrinkage and `--ewma-decay` only with EWMA.
-Freeze your choices before evaluating a final holdout period; repeatedly picking
-the best settings from the same test history overstates their accuracy.
+Horizons count trading sessions after the last supplied row, even if stale.
+Defaults use historical drift and sample volatility; insufficient history fails.
+A step equal to the horizon avoids overlapping target returns, though shared
+training windows can still make errors dependent.
 
-Interpret the report as follows:
-
-| Measure | What to look for |
-| --- | --- |
-| MAE, RMSE, MAPE | Smaller errors than the latest-price baseline |
-| MASE | Scale-free errors; compare model and baseline at the same horizon |
-| Paired MAE improvement | Positive favors the selected model; an interval spanning zero is inconclusive |
-| Directional accuracy | Check the forecast count and Wilson interval, not just the percentage |
-| Brier score | Lower is better; a constant 50% forecast always scores 0.25 |
-| Calibration | Mean forecast probabilities should resemble observed upward frequencies |
-| Interval coverage | Compare with the nominal 80%, 90%, or 95% rate |
-| Width and interval score | Lower is better, assessed at the same horizon and price scale |
-
-The report also shows always-up direction accuracy and Brier scores for
-always-up and training-only, same-horizon historical-rise frequencies. Flat
-training windows make MASE unavailable; a horizon longer than the lookback
-makes the historical-rise probability baseline unavailable.
-
-Test uncertainty sensitivity without changing the forecasts:
-
-```bash
-./build/mcprice backtest --csv Notes-dont-commit/AAPL.csv \
-  --lookback-days 252 --horizon-days 20 --step-days 20 \
-  --bootstrap-block-size 2 --bootstrap-sensitivity
-```
-
-This compares blocks of 2, 4, and 8 forecast observations, capped at the sample
-count. The default primary block is `ceil(horizon/step)`. Neither this heuristic
-nor the ten-block guard establishes independence; report inconclusive results
-when conclusions depend on block choice.
-
-Many observations inside a very wide range do not establish good prediction.
-Non-overlapping targets still share training data and may remain dependent.
-Current Wilson and bootstrap intervals are approximations; tiny samples cannot
-support strong conclusions even if the CLI labels the result better or worse.
-
-## 5. Save a reproducible run
-
-```bash
-./build/mcprice backtest --csv Notes-dont-commit/AAPL.csv \
-  --lookback-days 252 --horizon-days 20 --step-days 20 \
-  --bootstrap-samples 10000 --bootstrap-seed 42 \
-  > Notes-dont-commit/AAPL-backtest.txt
-git rev-parse HEAD
-c++ --version
-```
-
-Keep the exact command, data checksum, source revision, and compiler version.
-Use `--format csv` for individual backtest rows or the benchmark runner for JSON.
-The bootstrap seed controls resampling uncertainty, not the analytical GBM
-forecast. A fixed full configuration reproduces on the same toolchain.
+Compare with latest price and other baselines on identical rows. Check
+[error, probability, range and uncertainty metrics](calculations.md) together;
+[CLI options](cli.md#forecast-and-backtest) cover bootstrap sensitivity and CSV export.
+For multiple stocks, use the [manifest benchmark](forecast-benchmark.md).
+Freeze settings before a final evaluation.
 
 ## Troubleshooting
 
-- Missing column: use the exact header spelling with `--price-column`.
-- Invalid date/order: convert dates to ISO format and sort oldest first.
-- Invalid price: remove missing values and formatting, then investigate gaps.
-- History too short: supply more daily rows or reduce lookback/horizon.
-- Configure cannot download Catch2: restore network access or install Catch2 3.
-- Build fails on C++20 library features: use a newer compiler and standard library.
-- Forecast seems stale: check the final CSV date; no live quote is fetched.
-- Unavailable Monte Carlo uncertainty: one independent observation cannot estimate variance.
+- Missing column: match the header exactly with `--price-column`.
+- Invalid dates/prices: correct the source export and investigate gaps.
+- Short history: provide more sessions or explicitly choose a smaller workload.
+- Stale forecast: inspect the CSV's final date; no live quote is fetched.
+- Build/dependency problems: check the [installation instructions](../README.md#build-and-run).
 
-Option pricing is a separate command. Its risk-neutral rate is not the
-historical drift used above. Use `mcprice greeks` or `mcprice price --greeks`
-for European Delta/Gamma/Vega; see the [Greek calculator](../apps/greeks/README.md).
+Keep reproducible predictions as CSV/JSON rather than terminal dumps. After a
+large run, replace the relevant result summary and environment details instead
+of appending another progress note.

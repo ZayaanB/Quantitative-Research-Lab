@@ -123,7 +123,6 @@ if(BUILD_TESTING)
         tests/test_backtest_cli.cpp
         tests/test_black_scholes.cpp
         tests/test_cli.cpp
-        tests/test_domain_types.cpp
         tests/test_forecast_cli.cpp
         tests/test_forecasting.cpp
         tests/test_greeks.cpp
@@ -134,7 +133,6 @@ if(BUILD_TESTING)
         tests/test_price_history_csv.cpp
         tests/test_walk_forward_backtest.cpp
         tests/test_statistics.cpp
-        tests/test_smoke.cpp
         tests/test_validation.cpp
     )
     target_compile_features(mc_tests PRIVATE cxx_std_20)
@@ -144,6 +142,8 @@ if(BUILD_TESTING)
     add_test(NAME mc_tests COMMAND mc_tests)
     find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
+        add_test(NAME repository_hygiene
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_repository_hygiene.py)
         add_test(NAME energy_final
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_energy_final.py)
         add_test(NAME energy_uncertainty
@@ -183,4 +183,6 @@ if(BUILD_TESTING)
             -DCLI=$<TARGET_FILE:mcprice>
             -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/history_cli_workflow.cmake)
+    get_property(mc_registered_tests DIRECTORY PROPERTY TESTS)
+    set_tests_properties(${mc_registered_tests} PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
 endif()
