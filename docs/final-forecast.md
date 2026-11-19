@@ -1,10 +1,10 @@
 # Freeze and evaluate the final procedure
 
-Day 39 separates validation from an explicit final holdout attempt. It uses the
-[empirical residual workflow](residual-forecast.md), not C++ option valuation.
+This workflow separates validation from an explicit final holdout attempt. It uses the
+[empirical residual workflow](models.md#empirical-residual-ranges), not C++ option valuation.
 Python 3.9+ is enough. No extra packages are needed.
 
-Phase 2 Day 10 status (November 9): the original frozen stock exports/procedure
+Current stock status: the original frozen stock exports/procedure
 are still absent locally. No stock final test was run. The downloaded 2024+
 candidate is not a replacement for that missing experiment. The separate
 [energy final workflow](../apps/energy/README.md#final-evaluation) has its own data gate.

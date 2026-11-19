@@ -1,6 +1,5 @@
 import copy
 import csv
-from datetime import date, timedelta
 import json
 import math
 import os
@@ -10,6 +9,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+
+from stock_fixtures import weekday_dates
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,12 +27,7 @@ class MatchedForecastTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
         self.engine = Path(os.environ.get("MC_ENGINE", ROOT / "build/mcprice")).resolve()
-        self.dates = []
-        day = date(2020, 1, 1)
-        while len(self.dates) < 180:
-            if day.weekday() < 5:
-                self.dates.append(day.isoformat())
-            day += timedelta(days=1)
+        self.dates = weekday_dates(180)
         self.config = {"schema_version": 1, "lookback_days": 80, "validation_start": self.dates[100],
                        "holdout_start": self.dates[160], "test_end": self.dates[-1],
                        "bootstrap": {"samples": 100, "seed": 42, "block_sizes": [1, 2, 4]}, "assets": []}

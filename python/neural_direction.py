@@ -182,7 +182,7 @@ def evaluate(manifest, context_manifest):
                              "device": "cpu", "threads": 1, "dtype": "float32", "deterministic_algorithms": True,
                              "row_order": "origin_date, symbol; no shuffle", "threshold": 0.5,
                              "normalization": "per-feature training-window mean/population std; zero variance scale one",
-                             "training_targets": "strictly before common yearly fold start; same per-asset windows as Day 4",
+                             "training_targets": "strictly before common yearly fold start; same per-asset windows as pooled direction",
                              "selection": "none; fixed architecture/epochs/seed, no early stopping or calibration"})
     report["source_hashes"].update({name: sha256(Path(__file__).with_name(name).read_bytes()) for name in
                                    ("neural_direction.py", "direction_forecasts.py", "requirements-neural.txt")})

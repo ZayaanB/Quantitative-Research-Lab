@@ -97,7 +97,7 @@ def plot_errors(data: ConvergenceData, output_path: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=Path("results/convergence.csv"))
+    parser.add_argument("--input", type=Path, default=Path("results/final/convergence.csv"))
     parser.add_argument("--output-dir", type=Path, default=Path("results"))
     return parser.parse_args()
 

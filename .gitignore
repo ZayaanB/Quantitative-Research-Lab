@@ -1,27 +1,26 @@
 Notes-dont-commit/
 
-# CMake build output
 /build/
 /build-*/
 /cmake-build-*/
 CMakeUserPresets.json
 compile_commands.json
 
-# Compiled artifacts
 *.a
 *.dylib
 *.o
 *.so
 *.exe
 
-# Python tooling
 __pycache__/
 *.py[cod]
+.pytest_cache/
 .venv/
 /.venv-*/
 
-# Editors and operating systems
 .DS_Store
 .idea/
 .vscode/
 *.swp
+
+/results/**/*.png

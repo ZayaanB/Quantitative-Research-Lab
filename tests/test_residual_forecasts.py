@@ -5,9 +5,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
+
+
+from stock_fixtures import weekday_dates, write_price_asset
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,29 +23,13 @@ class ResidualTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)
-        self.dates = []
-        day = date(2020, 1, 1)
-        while len(self.dates) < 700:
-            if day.weekday() < 5:
-                self.dates.append(day.isoformat())
-            day += timedelta(days=1)
+        self.dates = weekday_dates(700)
         self.config = {"schema_version": 1, "lookback_days": 60,
                        "validation_start": self.dates[500], "holdout_start": self.dates[660],
                        "test_end": self.dates[-1], "assets": []}
         for symbol, prices in (("FLAT", [100.0] * 700),
                                ("WAVE", [100 * math.exp(0.0001 * i + 0.003 * math.sin(i)) for i in range(700)])):
-            history = self.directory / f"{symbol}.csv"
-            with history.open("w", newline="") as stream:
-                writer = csv.writer(stream)
-                writer.writerow(["Date", "Adj Close"])
-                writer.writerows(zip(self.dates, prices))
-            metadata = self.directory / f"{symbol}.meta"
-            metadata.write_text(f"provider=synthetic\nsymbol={symbol}\nadjustment=none\n"
-                                f"retrieved_on={self.dates[-1]}\nsource_url=local:fixture\n"
-                                "price_column=Adj Close\nfrequency=daily\n", encoding="utf-8")
-            self.config["assets"].append({"symbol": symbol, "csv": history.name,
-                "metadata": metadata.name, "csv_sha256": residual.sha256(history.read_bytes()),
-                "metadata_sha256": residual.sha256(metadata.read_bytes())})
+            self.config["assets"].append(write_price_asset(self.directory, symbol, self.dates, prices))
         self.manifest = self.directory / "manifest.json"
         self.save()
 

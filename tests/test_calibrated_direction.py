@@ -1,6 +1,6 @@
 import copy
 import csv
-from datetime import date, timedelta
+from datetime import date
 import importlib.util
 import json
 import math
@@ -10,6 +10,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+
+from stock_fixtures import weekday_dates
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,12 +31,7 @@ class CalibratedDirectionTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
-        self.dates = []
-        day = date(2013, 1, 1)
-        while len(self.dates) < 1700:
-            if day.weekday() < 5:
-                self.dates.append(day.isoformat())
-            day += timedelta(days=1)
+        self.dates = weekday_dates(1700, date(2013, 1, 1))
         settings = {"schema_version": 1, "lookback_days": 80, "validation_start": self.dates[1200],
                     "holdout_start": self.dates[1500], "test_end": self.dates[-1],
                     "bootstrap": {"samples": 100, "seed": 42, "block_sizes": [1, 2, 4]}}

@@ -69,9 +69,9 @@ from the price regressor's per-origin fits: a difference is not proof that the
 features alone caused an improvement. [Model selection and probability calibration](calibrated-direction.md)
 are a separate opt-in experiment; final testing remains a later milestone.
 
-## October 20 validation
+## Validation results
 
-The saved October 17 snapshot, AAPL/MSFT/GOOGL, 2018–2023, fixed yearly fits:
+AAPL/MSFT/GOOGL, 2018–2023, fixed yearly fits:
 
 | Horizon | Samples | Logistic hit rate | LightGBM hit rate | Always-up |
 | --- | --- | --- | --- | --- |

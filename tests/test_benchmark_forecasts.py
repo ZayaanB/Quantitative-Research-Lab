@@ -9,9 +9,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
+
+
+from stock_fixtures import weekday_dates, write_price_asset
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,30 +31,14 @@ class BenchmarkTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)
-        day = date(2020, 1, 1)
-        self.dates = []
-        while len(self.dates) < 180:
-            if day.weekday() < 5:
-                self.dates.append(day.isoformat())
-            day += timedelta(days=1)
+        self.dates = weekday_dates(180)
         self.prices = [100 * math.exp(0.0003 * index + 0.01 * math.sin(index)) for index in range(180)]
         self.config = {"schema_version": 1, "lookback_days": 10,
                        "bootstrap": {"samples": 100, "seed": 42, "block_sizes": [1, 2, 4]},
                        "validation_start": self.dates[20], "holdout_start": self.dates[100],
                        "test_end": self.dates[-1], "assets": []}
         for symbol, prices in (("SYNTH_A", self.prices), ("SYNTH_B", [100.0] * 180)):
-            history = self.directory / f"{symbol}.csv"
-            with history.open("w", newline="") as stream:
-                writer = csv.writer(stream)
-                writer.writerow(["Date", "Adj Close"])
-                writer.writerows(zip(self.dates, prices))
-            metadata = self.directory / f"{symbol}.meta"
-            metadata.write_text(f"provider=synthetic\nsymbol={symbol}\nadjustment=none\n"
-                                f"retrieved_on={self.dates[-1]}\nsource_url=local:fixture\n"
-                                "price_column=Adj Close\nfrequency=daily\n", encoding="utf-8")
-            self.config["assets"].append({"symbol": symbol, "csv": history.name,
-                "metadata": metadata.name, "csv_sha256": benchmark.sha256(history.read_bytes()),
-                "metadata_sha256": benchmark.sha256(metadata.read_bytes())})
+            self.config["assets"].append(write_price_asset(self.directory, symbol, self.dates, prices))
         self.manifest = self.directory / "manifest.json"
         self.save()
         self.engine = Path(os.environ.get("MC_ENGINE", ROOT / "build/mcprice")).resolve()

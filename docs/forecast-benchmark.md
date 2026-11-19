@@ -43,7 +43,7 @@ for each run. JSON records the manifest, input/executable hashes, platform,
 per-stock metrics, and full-precision forecast rows. It never overwrites an
 existing output and does not pool dollar errors across stocks.
 
-## Compare configurations (Day 35)
+## Compare configurations
 
 ```bash
 python3 python/compare_forecasts.py \
@@ -66,12 +66,12 @@ significance is claimed after searching candidates. Freeze the chosen procedure
 before evaluating untouched data. The original benchmark command still tests
 historical/sample with its manifest lookback; it does not load this selection.
 Research and suggested next experiments are in [model research](forecast-model-research.md).
-The separate [ridge return model](ridge-forecast.md) is a validation-only Day 36 experiment.
-Day 37 adds a [fixed 50/50 ensemble](ensemble-forecast.md) with paired comparisons.
-Day 38 adds [out-of-sample residual ranges](residual-forecast.md) and coverage checks.
-Day 39 provides the [frozen final-holdout workflow](final-forecast.md).
-Optional [ARIMA/ETS experiments](classical-forecast.md) remain validation-only challengers.
-The [LightGBM return experiment](boosted-forecast.md) adds a fixed nonlinear challenger.
+The separate [ridge return model](models.md#ridge-and-ensemble) is a validation-only experiment.
+The ensemble runner adds a [fixed 50/50 ensemble](models.md#ridge-and-ensemble) with paired comparisons.
+The residual runner adds [out-of-sample residual ranges](models.md#empirical-residual-ranges) and coverage checks.
+The final runner provides the [frozen final-holdout workflow](final-forecast.md).
+Optional [ARIMA/ETS experiments](models.md#arima-and-exponential-smoothing) remain validation-only challengers.
+The [LightGBM return experiment](models.md#lightgbm-return-regression) adds a fixed nonlinear challenger.
 
 To compare saved point-model reports on exactly the same dates as GBM, use the
 [matched comparison](matched-forecast.md). It validates inputs and reports gaps

@@ -14,7 +14,8 @@ from ieso import UTC, digest, load_reports, parse_date, parse_origin, parse_repo
 
 
 SOURCES = ("ieso.py", "baselines.py", "boosted_demand.py", "uncertainty.py", "final_evaluation.py")
-PROTOCOL = {"start_est": "2024-01-01", "end_exclusive_est": "2025-12-31", "origin_hour_est": 8,
+PROTOCOL = {"evaluation_id": "2024-only-approved-2026-11-17",
+            "start_est": "2024-01-01", "end_exclusive_est": "2024-12-31", "origin_hour_est": 8,
             "horizon_hours": 24, "primary_model": "lightgbm", "primary_baseline": "previous_day",
             "primary_metric": "hourly_mae_mw", "refit_or_recalibration": False,
             "bootstrap_samples": 2000, "bootstrap_seed": 42, "block_days": [1, 7, 28],
@@ -71,7 +72,7 @@ def validation_artifacts(report):
             report.get("task") != "ontario_hourly_demand_uncertainty" or report.get("phase") != "validation" or
             report.get("status") != "ok" or report.get("source_hashes") != expected_sources or
             any(report.get(key) != value for key, value in current.items() if key != "source_hashes")):
-        raise ValueError("require a current Day 9 validation report matching source/runtime")
+        raise ValueError("require a current demand-range validation report matching source/runtime")
     procedure = report["procedure"]
     calibration = report["calibration"]
     if (procedure["parameters"] != energy.PARAMETERS or procedure["rounds"] != energy.ROUNDS or
@@ -85,7 +86,7 @@ def validation_artifacts(report):
             calibration["frozen_at_utc"] != energy.origin_at(parse_date("2023-01-01")).isoformat() or
             report["evaluation"]["origin_start_est"] != "2023-01-01" or
             report["evaluation"]["origin_end_exclusive_est"] != "2023-12-31" or report["evaluation"]["rows"] != 8736):
-        raise ValueError("validation does not match the fixed Day 9 procedure/splits")
+        raise ValueError("validation does not match the fixed demand-range procedure/splits")
     widening = calibration["widening_mw"]
     if type(widening) not in (int, float) or not math.isfinite(widening) or widening < 0:
         raise ValueError("invalid frozen calibration correction")
@@ -106,10 +107,10 @@ def validation_artifacts(report):
 def freeze(validation, paths):
     report, validation_sha = read_json(validation)
     artifacts = validation_artifacts(report)
-    if len(paths) != 3:
-        raise ValueError("provide complete 2023 warmup, 2024 and 2025 CSVs in order")
+    if len(paths) != 2:
+        raise ValueError("provide only the complete 2023 warmup and approved 2024 CSVs in order")
     _, inputs = load_reports(paths)
-    for path, year in zip(paths, (2023, 2024, 2025)):
+    for path, year in zip(paths, (2023, 2024)):
         parse_report(Path(path).read_bytes(), expected_year=year)
     if inputs[0]["sha256"] not in {entry["sha256"] for entry in report["inputs"]}:
         raise ValueError("2023 warmup must match the validated snapshot")
@@ -234,7 +235,7 @@ def run_final(procedure_path, output, *, confirmed=False, retrospective=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Freeze Day 9 artifacts, then make one explicit final energy attempt.")
+    parser = argparse.ArgumentParser(description="Freeze demand-range artifacts, then make one explicit final energy attempt.")
     commands = parser.add_subparsers(dest="command", required=True)
     frozen = commands.add_parser("freeze")
     frozen.add_argument("--validation", type=Path, required=True)

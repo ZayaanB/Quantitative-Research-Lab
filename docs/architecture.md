@@ -65,10 +65,11 @@ captured and rethrown after every thread is joined.
 
 ## Forecasting boundary
 
-The [app guides](../apps/README.md) group pricing, Greeks, stock scenarios,
-prediction experiments and the planned energy project without duplicating
+The [documentation guides](README.md) group pricing, Greeks, stock scenarios,
+prediction experiments and energy forecasting without duplicating
 shared code. CLI Greeks call the existing risk engine; they do not forecast
-stock prices. Energy needs a separate hourly-data boundary and has no runner yet.
+stock prices. The energy module has its own importer, seasonal baselines,
+LightGBM, quantile ranges and frozen-evaluation runner in `apps/energy/`.
 
 Forecasting reads chronological adjusted closes and estimates physical-measure
 log-return drift and volatility. It returns a price distribution, not an option

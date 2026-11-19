@@ -1,20 +1,45 @@
 # Forecast research
 
-Reviewed October 17, 2026. This is an implementation-priority judgment, not a
-promise of stock accuracy. Keep these experiments separate from option pricing.
+Research references and proposed experiments. Current implementation and evaluation
+status are in the [roadmap](roadmap.md); model procedures are in the [model guide](models.md).
 
-## What our results mean
+## Energy research priorities
 
-MC and Black-Scholes price options under stated assumptions; they do not predict
-stock direction. Agreement between them checks numerical implementation, not
-agreement with actual option quotes. Black-Scholes is a closed-form reference
-within its model, not a trained predictor.
+The approved 2024 final comparison reduced MAE by 20.3% versus the daily baseline,
+but bias remained −224 MW and peak improvement was small. That period is consumed;
+the proposals below must not be tuned on it and presented as another clean final test.
 
-Our current LightGBM is a separate, price-only return regressor. Taking the sign
-of its prediction is not the same as training a calibrated direction classifier.
-Near-50% direction accuracy has no demonstrated value unless it beats relevant
-baselines. In rising markets, even 55% can lose to always predicting up.
-MAE, probability calibration and range coverage answer different questions.
+Prioritize inputs and controlled updates before model complexity:
+
+1. **Weather and holidays.** [Ben Taieb & Hyndman](https://robjhyndman.com/publications/kaggleloadforecasting/)
+   use temperature, calendar/holiday effects and past demand in hourly additive
+   boosted models. For us, first test Ontario holiday/adjacent-day features;
+   weather requires archived forecasts and documented publication latency.
+2. **Trend/residual targets and past-only refits.** The
+   [Rubattu–Maroni–Corani paper](https://arxiv.org/html/2305.05575v1)
+   reports improvements from detrending, feature engineering and temporal
+   reconciliation. Test changes separately, not its full heavy 30,000-round
+   competition recipe. Our frozen fit stops in 2021; a scheduled rolling fit is
+   a reasonable hypothesis, not an established improvement.
+3. **An additive/spline challenger and simple blend.** This supplies a different
+   inductive bias from LightGBM. [Forecast-combination evidence](https://otexts.com/fpp3/practical.html#forecast-combinations)
+   supports testing a simple average before fitting complex blend weights.
+4. **Adaptive uncertainty, not more point-accuracy claims.**
+   [Gibbs & Candès](https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html)
+   motivate online calibration under shift. Updates must wait for demand labels
+   to become available; long-run coverage tracking is not per-hour or simultaneous coverage.
+
+[Open-Meteo Single Runs](https://open-meteo.com/en/docs/single-runs-api) preserves
+forecast runs, unlike a stitched historical series. Its stated coverage starts
+in March 2024 for ECMWF IFS and April 2026 for other models, so it cannot simply
+populate our old 2018–2021 training contract. Initialization time alone does not
+prove release by our origin: verify publication latency, units, locations and
+terms before use. A new weather-enabled experiment needs its own chronological
+split and genuinely available forecasts, not ERA5/future realized temperatures.
+
+These are CPU-first candidates; no evidence here establishes a best algorithm
+for Ontario or Apple, or justifies buying hardware. Existing stock results do not
+show a reliable price-prediction edge, and energy results do not change that.
 
 ## Papers checked
 
@@ -40,44 +65,14 @@ Its randomly selected training/validation images are confined to the early
 sample, with a later chronological test. We should still use purged temporal
 validation in our own overlapping-window experiments.
 
-## What to build next
+## Price-model comparison
 
-1. **Feature-based LightGBM plus a regularized logistic control.** Use observed
-   OHLC ranges, volume changes, market/sector returns and volatility. Compare
-   price-return regression with a separate binary classifier; do not substitute
-   classification accuracy for price-error evaluation.
-2. **Pool a broader stock panel.** Share training across assets, split by dates
-   across all assets, and remove labels crossing validation boundaries. A few
-   current technology survivors are not a survivorship-free universe.
-3. **A small 1D CNN or LSTM challenger.** Use consistent window normalization and
-   the same data/splits. A 16 GB GPU is a reasonable experiment target, not a
-   guarantee of fit, speed or better accuracy. Do not train a foundation model.
-4. **Pretrained Chronos/TimesFM as a bounded comparison.** Pin checkpoint and
-   dependencies, check license and possible pretraining overlap, and prefer
-   genuinely post-checkpoint evaluation.
-5. **Separate energy-demand LightGBM.** See the [energy guide](../apps/energy/README.md).
-   Start with prior-day/week baselines and lagged demand/calendar inputs. Weather
-   must be archived forecasts available at the origin, not realized future weather.
-
-ARIMA/ETS, ridge, the ensemble and LightGBM regression are already implemented.
-Prophet is lower priority for daily equity prices because its intended strengths
-include strong seasonality. DeepAR/TFT need a richer panel to justify their
-complexity. XGBoost/CatBoost are reasonable controlled challengers, not automatic
-upgrades. No reviewed result establishes an absolutely best model for our task.
-
-## Current data and evaluation
-
-The [downloader](../apps/prediction/README.md) obtained 4,223 daily rows each for
-AAPL, MSFT, GOOGL, SPY, QQQ and XLK: January 4, 2010 to October 16, 2026.
-CSV, metadata, checksums and results stay under the ignored
-`Notes-dont-commit/market-data-20261017/` folder.
-
-The new fixed-settings comparison uses AAPL/MSFT/GOOGL, a 252-return lookback,
+The fixed-settings comparison used AAPL/MSFT/GOOGL, a 252-return lookback,
 2018–2023 validation, and 1/5/20-session targets. C++ dense forecast rows were
 filtered to exactly the LightGBM origin/target dates before comparison. No
 model settings were tuned from these results. The 2024 onward rows were
 downloaded but not fitted or scored; reserve them for a separately frozen final
-procedure, not the old missing final benchmark.
+procedure. The original stock final exports remain missing.
 
 GBM's equal-weight asset/horizon mean MAE ratio was 1.00067; LightGBM's was
 1.06126, where unchanged-price baseline is 1.0. Neither demonstrates a useful
@@ -85,9 +80,8 @@ edge. Always-up beat both on aggregate direction at every horizon. Confidence
 intervals must account for dependence; current block choices are heuristic and
 multiple model searches are not corrected.
 
-This is a new validation experiment, not evidence of accuracy improvement or
-loss against the earlier 2015–2017 Apple diagnostic. Different periods, lookbacks
-and adjustment snapshots are not directly comparable. The new OHLCV/market
-columns are available but have not yet been used by the existing price-only ML
-model. Provider adjustments and exchange-session completeness are not independently
-verified. Historical adjusted prices do not supply point-in-time fundamentals.
+Results from different periods, lookbacks and adjustment snapshots are not directly
+comparable. The OHLCV/context features feed the separate direction experiments;
+the price regressor remains price-only. Provider adjustments and exchange-session
+completeness are not independently verified. Historical adjusted prices do not
+supply point-in-time fundamentals.

@@ -120,7 +120,7 @@ def evaluate(manifest):
                             "Fixed specifications, same paired dates, no seasonal assumption or order search.",
                             "Point forecasts are exponentiated fitted log values, not expected arithmetic prices.",
                             "No prediction intervals; latest price wins ties; zero/zero groups excluded.",
-                            "Does not replace the Day 39 frozen ensemble procedure."], "results": results}
+                            "Does not replace the frozen ensemble procedure."], "results": results}
 
 
 def main():

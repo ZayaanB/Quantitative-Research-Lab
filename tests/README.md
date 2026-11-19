@@ -1,16 +1,32 @@
 # Tests
 
-From the repository root:
+Run from the repository root in a disposable build:
 
 ```bash
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
+(
+  set -e
+  export PYTHONDONTWRITEBYTECODE=1
+  verification_build="$(mktemp -d /tmp/mc-options-engine-build.XXXXXX)"
+  trap 'rm -rf -- "$verification_build"' EXIT
+  cmake -S . -B "$verification_build"
+  cmake --build "$verification_build"
+  ctest --test-dir "$verification_build" --output-on-failure
+)
 ```
+
+Disable bytecode caches for native Python checks too. Remove task-created scratch
+files and raw logs; keep reproducible research artifacts separate.
+
+Run the offline repository check with `python3 tests/check_repository.py`.
+CI checks local Markdown files/headings and rejects tracked generated or ignored
+files. External URLs are skipped; raw benchmark CSVs remain allowed. New untracked
+Markdown is checked locally, while pending deletions are excluded.
 
 Catch2 covers the C++ engine, numerical boundaries and CLI parsing. CTest also
 runs Python evaluation checks and end-to-end CLI workflows when Python is
 available. Downloader tests use offline fixtures, never live provider access.
+Stock calendars/price files and IESO report fixtures are shared in
+`stock_fixtures.py` and `energy_fixtures.py`; keep assertions in the individual suites.
 
 Optional model cases may skip without native dependencies. Exercise real fits
 in the virtual environment:
@@ -36,7 +52,6 @@ For the final workflow, run `.venv/bin/python tests/test_energy_final.py`.
 Synthetic fixtures test frozen inference, hash/missing-row guards, paired intervals
 and a retained used marker after failure; they do not score the real final period.
 
-Linux CI is configured to run native classical/boosted stock and energy tests
-after installing their optional requirements. Core CTest runs on Linux/macOS;
-optional skips there do not count as native fits. Local Day 11 checks also covered
-the direction, calibration and CNN suites using their documented requirements.
+Linux CI runs native classical/boosted stock and energy tests after installing
+their optional requirements. Core CTest runs on Linux/macOS. For direction,
+calibration and CNN native tests, follow their [guides](../docs/README.md).

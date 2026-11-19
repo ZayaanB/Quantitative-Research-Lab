@@ -1,6 +1,5 @@
 import copy
 import csv
-from datetime import date, timedelta
 import json
 import math
 from pathlib import Path
@@ -9,6 +8,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+
+
+from stock_fixtures import weekday_dates
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,12 +25,7 @@ class StockFeatureTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
-        self.dates = []
-        day = date(2020, 1, 1)
-        while len(self.dates) < 100:
-            if day.weekday() < 5:
-                self.dates.append(day.isoformat())
-            day += timedelta(days=1)
+        self.dates = weekday_dates(100)
         self.config = {"schema_version": 1, "lookback_days": 60, "validation_start": self.dates[50],
                        "holdout_start": self.dates[80], "test_end": self.dates[-1], "assets": []}
         self.context_config = copy.deepcopy(self.config)
