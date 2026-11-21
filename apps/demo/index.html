@@ -8,50 +8,87 @@
   <script defer src="/app.js"></script>
 </head>
 <body>
-  <header><h1>Quantitative Research Lab</h1><span>Local session</span></header>
+  <header class="workspace-bar">
+  <a class="brand" href="/" aria-label="Quantitative Research Lab home"><span class="brand-mark" aria-hidden="true">q<span>.</span></span><span>QUANT<span class="brand-sub">RESEARCH LAB</span></span></a>
+  <div class="breadcrumb">Workspace <span>/</span> <strong id="workspace-name">Options &amp; Greeks</strong></div>
+  <span class="local">Local session</span>
+  </header>
+  <aside class="sidebar">
+  <div class="sidebar-label">RESEARCH WORKSPACE</div>
   <nav aria-label="Research demos">
-    <button data-tab="price" aria-current="page">Options &amp; Greeks</button>
-    <button data-tab="scenarios">Stock Scenarios</button>
-    <button data-tab="stock">Stock Prediction</button>
-    <button data-tab="energy">Ontario Demand</button>
+    <button data-tab="price" aria-current="page"><span class="nav-icon" aria-hidden="true">∿</span>Options &amp; Greeks</button>
+    <button data-tab="scenarios"><span class="nav-icon" aria-hidden="true">⌁</span>Stock Scenarios</button>
+    <button data-tab="stock"><span class="nav-icon" aria-hidden="true">▥</span>Stock Prediction</button>
+    <button data-tab="energy"><span class="nav-icon" aria-hidden="true">ϟ</span>Ontario Demand</button>
   </nav>
+  <div class="sidebar-note"><strong>COMPUTE ENVIRONMENT</strong><p>Native C++20 engine<br>CPU · local execution<br>Antithetic sampling</p></div>
+  <div class="sidebar-footer"><span class="avatar">QR</span><div>Research environment<small>On your machine</small></div></div>
+  </aside>
   <main>
+    <div class="workspace-intro"><span class="eyebrow">QUANTITATIVE RESEARCH</span><span class="intro-meta">LOCAL ANALYTICS TERMINAL</span></div>
     <section id="price">
-      <div class="title"><h2>Options &amp; Greeks</h2><span>Live compute</span></div>
+      <div class="title"><div><h2>Options &amp; Greeks</h2><p>Monte Carlo pricing · Black–Scholes reference · European sensitivities</p></div><span class="mode-badge">Live compute</span></div>
+      <div class="section-caption"><span>Contract parameters</span><span>Risk-neutral assumptions</span></div>
       <form id="price-form">
         <label>Contract<select name="type"><option value="call">European call</option><option value="put">European put</option><option value="asian-call">Asian call</option></select></label>
         <label>Spot ($)<input name="spot" type="number" value="100" min="1" max="10000" step="0.01" required></label>
         <label>Strike ($)<input name="strike" type="number" value="100" min="1" max="10000" step="0.01" required></label>
-        <label>Volatility (%)<input name="vol" type="number" value="20" min="1" max="200" step="0.1" required></label>
+        <label>Volatility (%)<input name="vol" type="number" value="20" min="0" max="200" step="0.1" required></label>
+        <button class="primary"><span aria-hidden="true">▷</span> Run pricing</button>
+        <details class="run-settings">
+          <summary>Run settings</summary>
+          <div class="settings-fields">
         <label>Rate (%)<input name="rate" type="number" value="5" min="-25" max="50" step="0.1" required></label>
-        <label>Maturity (years)<input name="maturity" type="number" value="1" min=".01" max="10" step=".01" required></label>
-        <label>Paths<input name="paths" type="number" value="1000000" min="1000" max="10000000" step="2" required></label>
+        <label>Maturity (years)<input name="maturity" type="number" value="1" min="0" max="50" step=".01" required></label>
+        <label>Paths<input name="paths" type="number" value="1000000" min="1000" max="100000000" step="2" required></label>
+        <label>Checkpoints<input name="checkpoints" type="number" value="24" min="2" max="120" step="1" required></label>
         <label>Threads<input name="threads" type="number" value="2" min="1" max="16" required></label>
-        <label id="steps-field" hidden>Asian monitoring steps<input name="steps" type="number" value="64" min="2" max="252" required></label>
-        <button class="primary">Run pricing</button>
+        <label id="steps-field" hidden>Asian monitoring steps<input name="steps" type="number" value="64" min="2" max="4096" required disabled></label>
+          </div>
+        </details>
       </form>
       <p class="status" role="status"></p>
       <dl class="metrics"></dl>
-      <div class="panels">
-        <article><h3>Monte Carlo convergence</h3><p>Successively larger native runs, each with seed 42. The band is the 95% sampling interval.</p><div class="plot" id="convergence"></div></article>
-        <article><h3 id="risk-heading">Greeks</h3><p id="risk-detail">European sensitivities from five native revaluations using shared random numbers.</p><dl class="metrics" id="greeks"></dl><div class="plot" id="samples"></div></article>
+      <div class="panels pricing-panels">
+        <article id="convergence-panel" class="scope">
+          <div class="scope-header">
+            <div><h3>Monte Carlo convergence</h3><p>Native checkpoints and their 95% confidence intervals</p></div>
+            <div class="scope-readout"><span>Option value</span><output id="scope-price">—</output></div>
+          </div>
+          <div class="playback" id="price-timeline">
+            <button id="price-play" type="button" disabled>Replay</button>
+            <button id="price-step" type="button" disabled>Step</button>
+            <label class="timeline-position">Checkpoint<input id="price-position" type="range" min="1" max="24" value="1" disabled></label>
+            <output id="price-count">0 / 24</output>
+            <label>Display speed<select id="price-speed"><option value="live">Live</option><option value="4">4× replay</option><option value="1">1× replay</option><option value=".25">0.25× slow</option><option value=".1">0.1× slow</option></select></label>
+          </div>
+          <div class="checkpoint-progress" aria-hidden="true"><span id="checkpoint-fill"></span></div>
+          <div class="plot" id="convergence"></div>
+        </article>
+        <article id="risk-panel"><h3 id="risk-heading">Greeks</h3><p id="risk-detail">European sensitivities estimated from five Monte Carlo revaluations.</p><dl class="metrics" id="greeks"></dl></article>
+        <article id="path-panel" class="scope" hidden>
+          <h3>Simulated paths</h3>
+          <p>Illustrative draws under the selected contract assumptions</p>
+          <div class="playback" id="path-playback"></div>
+          <div class="plot" id="samples"></div>
+        </article>
       </div>
     </section>
     <section id="scenarios" hidden>
-      <div class="title"><h2>Stock Scenarios</h2><span>Local compute &amp; historical replay</span></div>
+      <div class="title"><div><h2>Stock Scenarios</h2><p>Historical GBM distributions · Walk-forward backtest</p></div><span class="mode-badge">Local compute &amp; historical replay</span></div>
       <form id="scenario-form">
         <label>Lookback (sessions)<input name="lookback" type="number" value="10" min="2" max="252" required></label>
-        <label>Horizon (sessions)<input name="horizon" type="number" value="3" min="1" max="20" required></label>
+        <label>Horizon (sessions)<input name="horizon" type="number" value="3" min="1" max="252" required></label>
         <button class="primary">Run forecast</button>
       </form>
       <p class="status" role="status"></p><dl class="metrics"></dl>
       <div class="panels">
-        <article><h3>Future price distribution</h3><div class="plot" id="fan"></div></article>
-        <article><h3>Walk-forward backtest</h3><div class="plot" id="backtest"></div><div class="playback"></div><dl class="metrics" id="backtest-metrics"></dl></article>
+        <article class="scope"><h3>GBM forecast range</h3><div class="plot" id="fan"></div><div class="playback" id="fan-playback"></div></article>
+        <article><h3>Walk-forward backtest</h3><div class="plot" id="backtest"></div><div class="playback" id="backtest-playback"></div><dl class="metrics" id="backtest-metrics"></dl></article>
       </div>
     </section>
     <section id="stock" hidden>
-      <div class="title"><h2>Stock Prediction</h2><span>Historical replay</span></div>
+      <div class="title"><div><h2>Stock Prediction</h2><p>Saved forecasts · Target-date outcomes · Probability calibration</p></div><span class="mode-badge">Historical replay</span></div>
       <label class="picker">Asset and horizon<select id="stock-series"></select></label>
       <p class="status" role="status"></p><dl class="metrics"></dl>
       <div class="panels">
@@ -60,17 +97,21 @@
       </div>
     </section>
     <section id="energy" hidden>
-      <div class="title"><h2>Ontario Electricity Demand</h2><span>Historical replay</span></div>
+      <div class="title"><div><h2>Ontario Demand</h2><p>Hourly electricity demand · Forecast ranges · Baseline comparison</p></div><span class="mode-badge">Historical replay</span></div>
       <label class="picker">Forecast origin (08:00 EST)<select id="energy-day"></select></label>
       <p class="status" role="status"></p><dl class="metrics"></dl>
-      <article><h3>24-hour demand forecast</h3><div class="plot" id="energy-plot"></div><div class="playback"></div></article>
+      <div class="panels energy-panels">
+        <article><h3>24-hour demand forecast</h3><div class="plot" id="energy-plot"></div><div class="playback"></div></article>
+        <article><h3>Forecast error by hour</h3><p>Positive values mean forecast demand was too high.</p><div class="plot" id="energy-error"></div></article>
+      </div>
     </section>
+    <footer class="workspace-footer"><span>QUANTITATIVE RESEARCH LAB</span><span>Local models. Transparent assumptions.</span></footer>
   </main>
   <template id="playback-controls">
     <button type="button">Play</button><button type="button">Step</button>
     <label>Position<input type="range" min="0" value="0"></label>
     <output></output>
-    <label>Playback speed<select><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value=".5">0.5×</option></select></label>
+    <label>Playback speed<select><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value=".5">0.5×</option><option value=".25">0.25× slow</option><option value=".1">0.1× slow</option></select></label>
   </template>
 </body>
 </html>

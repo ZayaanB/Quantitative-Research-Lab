@@ -32,18 +32,24 @@ def fields(output):
 
 
 def extract(output, key):
-    return float(output[key].strip().split()[0].rstrip("%"))
+    value = float(output[key].strip().split()[0].rstrip("%"))
+    if not math.isfinite(value):
+        raise ValueError("These assumptions produced non-finite results. Reduce the input magnitudes.")
+    return value
 
 
 def interval(output, key):
-    return [float(part) for part in output[key].strip().strip("[]").split(",")]
+    values = [float(part) for part in output[key].strip().strip("[]").split(",")]
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("These assumptions produced a non-finite interval. Reduce the input magnitudes.")
+    return values
 
 
 def native(binary, *args):
     if not binary.is_file():
         raise ValueError("mcprice is missing. Build it first or launch with --binary.")
     result = subprocess.run([str(binary), *args], capture_output=True, text=True,
-                            timeout=90, cwd=ROOT)
+                            timeout=300, cwd=ROOT)
     if result.returncode:
         raise ValueError(result.stderr.strip() or "mcprice exited with an error")
     return result.stdout
@@ -56,16 +62,17 @@ def pricing(binary, query):
     asian = kind == "asian-call"
     spot = settings(query, "spot", 100, float, 1, 10000)
     strike = settings(query, "strike", 100, float, 1, 10000)
-    vol = settings(query, "vol", .2, float, .01, 2)
+    vol = settings(query, "vol", .2, float, 0, 2)
     rate = settings(query, "rate", .05, float, -.25, .5)
-    maturity = settings(query, "maturity", 1, float, .01, 10)
-    paths = int(settings(query, "paths", 1_000_000, int, 1000, 10_000_000))
+    maturity = settings(query, "maturity", 1, float, 0, 50)
+    paths = int(settings(query, "paths", 1_000_000, int, 1000, 100_000_000))
+    checkpoints = int(settings(query, "checkpoints", 24, int, 2, 120))
     threads = settings(query, "threads", 2, int, 1, 16)
-    steps = settings(query, "steps", 64, int, 2, 252) if asian else "1"
+    steps = settings(query, "steps", 64, int, 2, 4096) if asian else "1"
     if paths % 2:
         raise ValueError("Antithetic sampling requires an even path count.")
-    if asian and paths * int(steps) > 260_000_000:
-        raise ValueError("Choose fewer paths or monitoring steps for this demo.")
+    if asian and paths * int(steps) > 2_000_000_000:
+        raise ValueError("Asian paths × monitoring steps must be at most 2,000,000,000.")
     args = ("--type", kind, "--spot", spot, "--strike", strike, "--volatility", vol,
             "--rate", rate, "--maturity", maturity, "--threads", threads,
             "--steps", steps, "--seed", "42", "--antithetic")
@@ -84,8 +91,8 @@ def pricing(binary, query):
 
     started = time.perf_counter()
     # Each checkpoint is a complete native run with a larger path budget.
-    for fraction in (.01, .03, .07, .15, .30, .55, 1):
-        count = max(4, int(paths * fraction) // 2 * 2)
+    for checkpoint in range(1, checkpoints + 1):
+        count = 2 * ((paths // 2) * checkpoint // checkpoints)
         result = fields(native(binary, "price", *args, "--paths", str(count)))
         yield {"paths": count, "estimate": extract(result, "Monte Carlo estimate"),
                "reference": extract(result, "Analytical price") if not asian else None,
@@ -101,7 +108,7 @@ def pricing(binary, query):
 
 
 def scenarios(binary, query, history):
-    horizon = int(settings(query, "horizon", 3, int, 1, 20))
+    horizon = int(settings(query, "horizon", 3, int, 1, 252))
     lookback = settings(query, "lookback", 10, int, 2, 252)
     args = ("--csv", str(history), "--lookback-days", lookback)
     started = time.perf_counter()
