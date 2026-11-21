@@ -142,6 +142,9 @@ if(BUILD_TESTING)
     add_test(NAME mc_tests COMMAND mc_tests)
     find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
+        add_test(NAME local_dashboard
+            COMMAND ${CMAKE_COMMAND} -E env MC_ENGINE=$<TARGET_FILE:mcprice>
+                ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_dashboard.py)
         add_test(NAME repository_hygiene
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_repository_hygiene.py)
         add_test(NAME energy_final
