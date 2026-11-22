@@ -211,6 +211,97 @@ non-finite values. Frozen source/runtime changes require a new explicit freeze.
 
 ## Data and next steps
 
+### Hourly demand and peak experiment
+
+Run the matched development comparison with the 2018–2023 snapshots and the
+energy requirements above:
+
+```bash
+.venv/bin/python apps/energy/demand_experiment.py --csv \
+  /path/to/2018.csv /path/to/2019.csv /path/to/2020.csv /path/to/2021.csv \
+  /path/to/2022.csv /path/to/2023.csv --retrospective \
+  --output Notes-dont-commit/energy/demand-experiment-2023.json
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python tests/test_energy_demand_experiment.py
+```
+
+The experiment fits through 2021, uses 2022 error curves to estimate peak
+probabilities and ranges, and evaluates 364 matched 08:00 EST origins in 2023
+(8,736 hours). Boundary windows are purged before fitting and calibration.
+The calendar features flag Ontario public holidays and adjacent local days.
+Employer-specific observed days are not inferred. The blend weights are fixed at
+50/50. Peak-hour error is the absolute difference between lead hours, using
+the earliest maximum in a tie.
+
+| Model | Hourly MAE (MW) | Bias (MW) | Peak MAE (MW) | Peak-hour MAE (h) |
+| --- | ---: | ---: | ---: | ---: |
+| Existing LightGBM | 620.20 | −129.44 | 668.36 | 1.253 |
+| LightGBM with holidays | 610.49 | −133.20 | 657.61 | 1.269 |
+| Additive model | 631.14 | −175.71 | 686.27 | 1.206 |
+| Blend | 596.63 | −154.46 | 655.59 | 1.225 |
+
+The blend's empirical 90% peak interval covered 90.66% with mean width
+2,619 MW. Only three windows reached the exploratory 22,000 MW threshold.
+A paired circular bootstrap (2,000 draws, seven-day blocks, seed 42)
+gave a 95% interval of 2 to 48 MW for the blend's hourly MAE reduction
+and −11 to 38 MW for its peak MAE reduction.
+These are inspected retrospective development results. They use revised
+load data and assumed availability. No real weather or operator score is
+included in the table.
+
+#### Archived weather and IESO forecasts
+
+Pass `--weather` a CSV with this header. Add optional location columns ending
+in `_c` after `toronto_c`. Celsius temperatures apply at the UTC start of each
+target hour. Supply 24 rows per origin, all from the same archived forecast
+issuance. Keep the raw runs and record their source and release evidence.
+The loader checks the supplied issuance and availability timestamps against
+the origin. It cannot independently establish when historical data was
+public. Use forecast runs, such as the [NCAR GFS archive](https://gdex.ucar.edu/datasets/d084001/),
+and keep reanalysis and realized temperature out of the inputs.
+
+```text
+origin_utc,target_start_utc,issued_at_utc,available_at_utc,source,toronto_c
+```
+
+The weather ablation adds hourly temperatures and forecast-window extremes.
+The additive model uses piecewise-linear temperature effects and interactions
+with hour of day. Every model is compared on the same origins. The report
+includes separate metrics for summer, winter, and forecast-defined heat and cold
+when temperatures are supplied.
+
+Use `adequacy_input.py --manifest snapshots.csv --output operator.csv` to
+normalize saved IESO Adequacy3 reports. The manifest columns are
+`origin_date_est,available_at_utc,source,xml`. Provide the public source URL
+and the local XML path relative to the manifest. Retain the two delivery-day
+reports for each origin and record when each exact snapshot was seen or
+otherwise proven public. The converter selects the latest eligible issuance
+per delivery date and extracts Ontario **Average Demand**, keeping the raw
+hash in the provenance. IESO's headline Forecast Ontario Demand can switch
+to the highest five-minute value in an hour. Use `--operator operator.csv`
+to score the hourly average comparator. See the [IESO field definitions](https://reports-public.ieso.ca/docrefs/helpfile/Adequacy3_h2.pdf).
+
+For a recent operator comparison, keep historical fitting data in `--csv`
+and use `--train-end 2022-01-01`, `--recent-csv` with a contiguous recent
+demand block (including 14 days of lag history), and explicit 2026-or-later
+calibration and scoring dates. The operator file must cover every retained
+calibration and scoring hour. IESO publishes a rolling [Adequacy archive](https://www.ieso.ca/Power-Data/Data-Directory#System-Adequacy).
+Neither workflow consumes or replaces the frozen final evaluation.
+
+#### Research ideas to test
+
+- Fan and Hyndman's additive model uses forecast temperature from multiple
+  sites and lagged demand. Test whether Ottawa, London and a northern site
+  improve over Toronto alone, then test prior temperature and humidity where
+  release times can be verified. [Paper](https://robjhyndman.com/papers/2010STLF-FinalR1.pdf)
+- Rubattu, Maroni and Corani use thermal summaries and discuss detrending
+  before fitting boosted trees. Try predicting demand relative to a seasonal
+  baseline, and compare fixed and trailing refits on the same origins.
+  [Paper](https://arxiv.org/html/2305.05575v1)
+- Amara-Ouali et al. model peak magnitude and timing across resolutions.
+  Compare a direct window-peak prediction against the maximum of the hourly
+  curve, and test whether the residual scenarios improve after grouping by
+  season when enough archived windows are available. [Paper](https://arxiv.org/abs/2112.04492)
+
 Source: [IESO annual demand reports](https://reports-public.ieso.ca/public/Demand/),
 described in the [data directory](https://www.ieso.ca/Power-Data/Data-Directory).
 Downloads keep original bytes, creation headers, retrieval time, HTTP metadata,
