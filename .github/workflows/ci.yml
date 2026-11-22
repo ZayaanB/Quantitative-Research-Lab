@@ -57,3 +57,4 @@ jobs:
           .venv-forecast-tests/bin/python tests/test_energy_lightgbm.py
           .venv-forecast-tests/bin/python tests/test_energy_uncertainty.py
           .venv-forecast-tests/bin/python tests/test_energy_final.py
+          .venv-forecast-tests/bin/python tests/test_energy_demand_experiment.py

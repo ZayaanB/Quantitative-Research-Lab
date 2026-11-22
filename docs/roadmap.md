@@ -22,7 +22,13 @@ unscored. See the [results and assumptions](../apps/energy/README.md#final-evalu
 
 Predeclare each procedure and reserve fresh final data.
 
-1. Validate reporting vintages and archived weather availability; test holiday features.
+The matched [energy development experiment](../apps/energy/README.md#hourly-demand-and-peak-experiment)
+tested Ontario holidays and a fixed additive blend. The blend lowered 2023
+hourly MAE from 620 MW to 597 MW and window-peak MAE from 668 MW to 656 MW.
+Its mean underprediction increased. Operator XML and issued weather inputs
+are supported, pending a matched historical or prospective comparison.
+
+1. Validate reporting vintages and backtest archived weather and IESO forecasts.
 2. Compare past-only rolling refits and seasonal-residual targets; recalibrate changes.
 3. Test an additive/spline control and a fixed blend before increasing complexity.
 4. Evaluate delayed-label adaptive ranges using coverage, width and pinball loss.
