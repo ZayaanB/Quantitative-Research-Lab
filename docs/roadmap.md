@@ -22,16 +22,18 @@ unscored. See the [results and assumptions](../apps/energy/README.md#final-evalu
 
 Predeclare each procedure and reserve fresh final data.
 
-The matched [energy development experiment](../apps/energy/README.md#hourly-demand-and-peak-experiment)
-tested Ontario holidays and a fixed additive blend. The blend lowered 2023
-hourly MAE from 620 MW to 597 MW and window-peak MAE from 668 MW to 656 MW.
-Its mean underprediction increased. Operator XML and issued weather inputs
-are supported, pending a matched historical or prospective comparison.
+The [current Ontario benchmark](../apps/energy/README.md#current-benchmark)
+found that Toronto weather cut hourly MAE from 654 MW to 563 MW. IESO's
+hourly MAE was 242 MW versus 473 MW for Toronto on 44 matched fall windows.
+Tuning raised scoring-period hourly MAE. The 2026 scoring period is now
+inspected. Reserve a new prospective period for operational claims.
 
-1. Validate reporting vintages and backtest archived weather and IESO forecasts.
-2. Compare past-only rolling refits and seasonal-residual targets; recalibrate changes.
-3. Test an additive/spline control and a fixed blend before increasing complexity.
-4. Evaluate delayed-label adaptive ranges using coverage, width and pinball loss.
+1. Capture per-origin weather releases, IESO forecasts and demand vintages
+   through both cold and hot conditions.
+2. Compare trailing refits and seasonal residual targets to address
+   underprediction. Test an IESO residual correction with fresh paired data.
+3. Compare direct window-peak forecasts and adaptive ranges using timing,
+   coverage, width and interval score.
 
 Rationale: [energy research priorities](forecast-model-research.md#energy-research-priorities).
 
