@@ -4,9 +4,7 @@ The five CSVs in [final/](final/) are the reference suite: convergence, scaling,
 variance reduction, instrument performance and Greek accuracy. Its
 [environment record](final/environment.md) describes the workload and toolchain.
 
-The standalone convergence snapshot was superseded by `final/convergence.csv`;
-its price/error/SE rows were identical. Generated PNGs are omitted because they
-can be recreated from CSV. Plot scripts accept an output directory:
+Generate plots from the benchmark CSVs:
 
 ```bash
 .venv/bin/python python/plot_final_benchmarks.py --output-dir /tmp/mc-final-plots
@@ -14,10 +12,34 @@ can be recreated from CSV. Plot scripts accept an output directory:
 .venv/bin/python python/plot_scaling.py --output-dir /tmp/mc-scaling-plots
 ```
 
-## Focused experiments
+## Ontario electricity demand
 
-These cover different workloads from the reference suite. Retain their raw
-rows when updating results; age alone does not make an experiment redundant.
+See the [current benchmark](../apps/energy/README.md#current-benchmark) for scores.
+
+| Run partition | Dates | Origins | Scored hours |
+| --- | --- | ---: | ---: |
+| Training | March 15–December 29, 2024 and January 15–May 30, 2026 | 426 | — |
+| Calibration | June 1–July 13, 2026 | 43 | — |
+| Scoring | July 15–November 19, 2026 | 128 | 3,072 |
+| IESO comparison | October 7–November 19, 2026 | 44 | 1,056 |
+
+The benchmark uses archived ECMWF IFS 00 UTC forecasts for Toronto Pearson,
+Ottawa, London and Thunder Bay with an assumed 12-hour release lag. June 23
+uses the previous day's 18 UTC cycle because the 00 UTC run had gaps.
+Revised demand uses the assumed next-day cutoff. Both the IESO XML creation
+and HTTP Last-Modified timestamps had to be at or before the forecast cutoff.
+Eighty-four scoring origins lacked both eligible delivery-date reports.
+[Weather archive](https://open-meteo.com/en/docs/single-runs-api) and
+[IESO Adequacy definitions](https://reports-public.ieso.ca/docrefs/helpfile/Adequacy3_h2.pdf).
+
+The default and tuning runs took about 4 and 5 seconds on an Intel
+i9-13900H with Python 3.12.3, NumPy 2.5.3, SciPy 1.18.1 and LightGBM 4.7.0.
+The 95% intervals use 2,000 paired circular resamples of seven-day blocks
+with seed 42. The operator comparison is descriptive. Normalized inputs,
+provider evidence, model artifacts and matched predictions are preserved
+locally in `Notes-dont-commit/energy/benchmark-2026-11-22/`.
+
+## Focused experiments
 
 | Files | Purpose | Recorded |
 | --- | --- | --- |
@@ -79,6 +101,3 @@ SE and RNG streams. Instructions fell to 449,576,174 (-6.645%).
 | --- | ---: | ---: | ---: |
 | 1 | 23.619M paths/s | 24.379M paths/s | +3.218% |
 | 8 | 112.697M paths/s | 129.211M paths/s | +14.654% |
-
-After a benchmark, replace the matching summary and environment details here
-or in `final/environment.md`; retain the raw evidence behind comparisons.
